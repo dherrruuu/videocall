@@ -929,10 +929,112 @@
             document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
         }
 
+        // PEER CONNECTION CONFIG
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // CREATE PEER CONNECTION
+        async function createPeerConnection(peerId) {
+            if (state.peers[peerId]) return state.peers[peerId].pc;
+
+            const peerConnection = new RTCPeerConnection(rtcConfig);
+            state.peers[peerId] = {
+                pc: peerConnection,
+                stream: null
+            };
+
+            // Add local stream tracks
+            if (state.localStream) {
+                state.localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, state.localStream);
+                });
+            }
+
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                console.log('Remote track received:', event.track.kind);
+                if (event.streams.length > 0) {
+                    state.peers[peerId].stream = event.streams[0];
+                    addVideoElement(peerId, event.streams[0], `Peer ${peerId.substring(0, 5)}`);
+                }
+            };
+
+            // Handle ICE candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    state.socket.emit('send-ice', {
+                        to: peerId,
+                        candidate: event.candidate
+                    });
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+            };
+
+            return peerConnection;
+        }
+
+        // SEND OFFER
+        async function sendOffer(peerId) {
+            try {
+                const peerConnection = await createPeerConnection(peerId);
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                state.socket.emit('send-offer', {
+                    to: peerId,
+                    offer: offer
+                });
+            } catch (error) {
+                console.error('Error sending offer:', error);
+            }
+        }
+
+        // SEND ANSWER
+        async function sendAnswer(peerId, offer) {
+            try {
+                let peerConnection = state.peers[peerId];
+                if (!peerConnection) {
+                    peerConnection = await createPeerConnection(peerId);
+                } else {
+                    peerConnection = peerConnection.pc;
+                }
+
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                state.socket.emit('send-answer', {
+                    to: peerId,
+                    answer: answer
+                });
+            } catch (error) {
+                console.error('Error sending answer:', error);
+            }
+        }
+
         // SOCKET LISTENERS
         function setupSocketListeners() {
+            state.socket.on('existing-users', (users) => {
+                console.log('Existing users:', users);
+                // Send offer to all existing participants
+                users.forEach(user => {
+                    setTimeout(() => {
+                        sendOffer(user.id);
+                    }, 300);
+                });
+            });
+
             state.socket.on('user-joined', (user) => {
                 addMessage('System', `${user.username} joined`);
+                // Send offer to new user
+                setTimeout(() => {
+                    sendOffer(user.id);
+                }, 500);
                 updateParticipantCount();
             });
 
@@ -951,6 +1053,43 @@
             state.socket.on('request-denied', () => {
                 showNotification('Request denied', 'error');
                 leaveCall();
+            });
+
+            state.socket.on('receive-offer', async (data) => {
+                console.log('Received offer from:', data.from);
+                await sendAnswer(data.from, data.offer);
+            });
+
+            state.socket.on('receive-answer', async (data) => {
+                console.log('Received answer from:', data.from);
+                if (state.peers[data.from]) {
+                    await state.peers[data.from].pc.setRemoteDescription(
+                        new RTCSessionDescription(data.answer)
+                    );
+                }
+            });
+
+            state.socket.on('receive-ice', async (data) => {
+                console.log('Received ICE from:', data.from);
+                if (state.peers[data.from]) {
+                    try {
+                        await state.peers[data.from].pc.addIceCandidate(
+                            new RTCIceCandidate(data.candidate)
+                        );
+                    } catch (error) {
+                        console.error('Error adding ICE candidate:', error);
+                    }
+                }
+            });
+
+            state.socket.on('peer-disconnected', (peerId) => {
+                if (state.peers[peerId]) {
+                    state.peers[peerId].pc.close();
+                    delete state.peers[peerId];
+                    const videoContainer = document.getElementById(`video-${peerId}`);
+                    if (videoContainer) videoContainer.remove();
+                    updateParticipantCount();
+                }
             });
 
             state.socket.on('chat-message', (username, text) => {

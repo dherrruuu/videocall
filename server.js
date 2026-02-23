@@ -72,7 +72,7 @@ io.on("connection", socket => {
         }
 
         // Update all in room
-        io.to(roomId).emit("user-joined", { username: userName });
+        io.to(roomId).emit("user-joined", { id: userId, username: userName });
         console.log(userName, "approved to join", roomId);
     });
 
@@ -95,8 +95,39 @@ io.on("connection", socket => {
         socket.roomId = roomId;
         socket.username = username;
         socket.join(roomId);
-        io.to(roomId).emit("user-joined", { username: username });
+        
+        // Send new user the list of existing participants
+        const room = rooms[roomId];
+        if (room) {
+            const existingUsers = room.participants.map(p => ({ id: p.id, username: p.name }));
+            socket.emit("existing-users", existingUsers);
+        }
+        
+        // Notify all others about the new user
+        socket.broadcast.to(roomId).emit("user-joined", { id: socket.id, username: username });
         console.log(username, "joined", roomId);
+    });
+
+    // WEBRTC SIGNALING
+    socket.on("send-offer", (data) => {
+        io.to(data.to).emit("receive-offer", {
+            from: socket.id,
+            offer: data.offer
+        });
+    });
+
+    socket.on("send-answer", (data) => {
+        io.to(data.to).emit("receive-answer", {
+            from: socket.id,
+            answer: data.answer
+        });
+    });
+
+    socket.on("send-ice", (data) => {
+        io.to(data.to).emit("receive-ice", {
+            from: socket.id,
+            candidate: data.candidate
+        });
     });
 
     // CHAT
@@ -109,6 +140,7 @@ io.on("connection", socket => {
     socket.on("leave-call", (roomId) => {
         if (socket.roomId) {
             io.to(socket.roomId).emit("user-left", socket.username || "User");
+            io.to(socket.roomId).emit("peer-disconnected", socket.id);
             socket.leave(socket.roomId);
             
             // Clean up room if empty

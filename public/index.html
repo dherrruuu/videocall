@@ -1,1195 +1,1005 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Video Call</title>
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Video Call - Host Approval</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-html, body {
-    width: 100%;
-    height: 100%;
-}
+        :root {
+            --primary: #5865F2;
+            --secondary: #2f3136;
+            --dark: #202225;
+            --light: #72767d;
+            --white: #ffffff;
+            --success: #43b581;
+            --danger: #f04747;
+        }
 
-body {
-    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #202124;
-    color: white;
-    overflow: hidden;
-}
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark);
+            color: var(--white);
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-/* Root font size for scaling */
-:root {
-    --base-font: 16px;
-    --scale-factor: 1;
-}
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-/* Username Modal - Google Meet Style */
-#usernameModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #202124 0%, #292a2d 100%);
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-}
+        /* START SCREEN */
+        #startScreen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
 
-.modal-content {
-    background: #292a2d;
-    padding: 30px 20px;
-    border-radius: 16px;
-    text-align: center;
-    min-width: 280px;
-    max-width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
-.modal-content h2 {
-    margin-bottom: 20px;
-    color: #ffffff;
-    font-size: 28px;
-    font-weight: 300;
-    letter-spacing: -0.5px;
-}
+        .start-container {
+            text-align: center;
+            max-width: 400px;
+            animation: slideUp 0.4s ease;
+        }
 
-.modal-content p {
-    color: #bdc1c6;
-    margin-bottom: 20px;
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 400;
-}
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.modal-content input {
-    width: 100%;
-    padding: 14px 16px;
-    border: 1px solid #5f6368;
-    border-radius: 8px;
-    background: #202124;
-    color: white;
-    font-size: 16px;
-    margin-bottom: 20px;
-    transition: border-color 0.3s;
-}
+        .start-container h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
 
-.modal-content input:focus {
-    outline: none;
-    border-color: #8ab4f8;
-    background: #2d2e30;
-}
+        .start-container p {
+            color: var(--light);
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
 
-.modal-content button {
-    width: 100%;
-    padding: 14px 24px;
-    background: #8ab4f8;
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-bottom: 10px;
-    transition: all 0.3s;
-}
+        .input-group {
+            margin-bottom: 15px;
+        }
 
-.modal-content button:hover:not(:disabled) {
-    background: #aecbfa;
-    box-shadow: 0 4px 12px rgba(138, 180, 248, 0.3);
-}
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            background: var(--secondary);
+            color: var(--white);
+            font-size: 16px;
+            transition: all 0.3s;
+        }
 
-.modal-content button:disabled {
-    background: #5f6368;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #2c2f33;
+        }
 
-.loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(96, 165, 250, 0.3);
-    border-radius: 50%;
-    border-top-color: #60a5fa;
-    animation: spin 1s ease-in-out infinite;
-    margin-right: 8px;
-    vertical-align: middle;
-}
+        .input-group input::placeholder {
+            color: var(--light);
+        }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
 
-.permission-info {
-    background: #3c4043;
-    padding: 12px 14px;
-    border-left: 3px solid #8ab4f8;
-    border-radius: 4px;
-    margin: 15px 0;
-    font-size: 13px;
-    color: #bdc1c6;
-}
+        button {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+        }
 
-.permission-info strong {
-    display: block;
-    color: #ffffff;
-    margin-bottom: 6px;
-    font-weight: 500;
-}
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
 
-@media (max-width: 767px) {
-    .modal-content {
-        padding: 20px 15px;
-        min-width: 85%;
-    }
-    
-    .modal-content h2 {
-        font-size: 20px;
-        margin-bottom: 15px;
-    }
-    
-    .modal-content p {
-        font-size: 13px;
-    }
-    
-    .modal-content input {
-        padding: 14px;
-        font-size: 16px;
-        margin-bottom: 15px;
-    }
-    
-    .modal-content button {
-        padding: 16px;
-        font-size: 15px;
-        margin-bottom: 8px;
-    }
-}
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(88, 101, 242, 0.4);
+        }
 
-/* Main Layout */
-.container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    padding-top: safe-area-inset-top;
-    padding-bottom: safe-area-inset-bottom;
-}
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--white);
+            border: 2px solid var(--light);
+        }
 
-/* Top Bar - Google Meet Style */
-.topbar {
-    background: #202124;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #3c4043;
-    flex-shrink: 0;
-    min-height: 56px;
-}
+        .btn-secondary:hover {
+            background: #36393f;
+            border-color: var(--primary);
+        }
 
-.topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    min-width: 0;
-}
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-.topbar h1 {
-    font-size: 18px;
-    color: #ffffff;
-    white-space: nowrap;
-    font-weight: 500;
-}
+        /* MAIN CALL SCREEN */
+        #callScreen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            background: var(--dark);
+        }
 
-.topbar-right {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
+        /* HEADER */
+        .header {
+            background: var(--secondary);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e2125;
+            z-index: 100;
+            min-height: 56px;
+        }
 
-.btn {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.3s;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
+        .header-title {
+            font-weight: 600;
+            font-size: 16px;
+            flex: 1;
+        }
 
-.btn-primary {
-    background: #8ab4f8;
-    color: white;
-}
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--light);
+        }
 
-.btn-primary:hover {
-    background: #aecbfa;
-    box-shadow: 0 2px 8px rgba(138, 180, 248, 0.3);
-}
+        .header-button {
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px solid var(--light);
+            border-radius: 6px;
+            color: var(--white);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 0;
+            min-height: auto;
+        }
 
-#participantCount {
-    color: #bdc1c6;
-    font-size: 13px;
-    white-space: nowrap;
-    font-weight: 500;
-}
+        .header-button:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: none;
+        }
 
-/* Main Content */
-.main-content {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    gap: 0;
-}
+        /* CONTENT AREA */
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
 
-/* Desktop Layout - Google Meet Style */
-@media (min-width: 1024px) {
-    .main-content {
-        flex-direction: row;
-    }
-    
-    #videosSection {
-        flex: 1;
-        overflow: hidden;
-    }
-    
-    #videos {
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 8px;
-        padding: 8px;
-    }
-    
-    .chat-section {
-        width: 360px;
-        border-left: 1px solid #3c4043;
-    }
-}
+        /* VIDEOS SECTION */
+        #videosSection {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #141416;
+            overflow: auto;
+        }
 
-/* Tablet Layout - Google Meet Style */
-@media (max-width: 1023px) and (min-width: 768px) {
-    .main-content {
-        flex-direction: column;
-    }
-    
-    #videosSection {
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-    }
-    
-    #videos {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 4px;
-    }
-    
-    .chat-section {
-        height: 200px;
-        border-left: none;
-        border-top: 1px solid #3c4043;
-    }
-    
-    .chat-header {
-        font-size: 14px;
-    }
-    
-    .video-label {
-        font-size: 12px;
-    }
-}
+        #videos {
+            display: grid;
+            gap: 8px;
+            padding: 8px;
+            height: 100%;
+            width: 100%;
+            auto-flow: dense;
+        }
 
-/* Mobile Layout - Google Meet Style */
-@media (max-width: 767px) {
-    :root {
-        --base-font: 14px;
-    }
-    
-    .main-content {
-        flex-direction: column;
-        gap: 0;
-    }
-    
-    #videosSection {
-        flex: 1;
-        padding: 0;
-        overflow: hidden;
-        background: #202124;
-    }
-    
-    #videos {
-        grid-template-columns: 1fr;
-        gap: 0;
-        height: 100%;
-        padding: 0;
-    }
-    
-    .video-container {
-        aspect-ratio: 9/16;
-        width: 100%;
-        min-height: 0;
-        border-radius: 0;
-    }
-    
-    .video-label {
-        font-size: 12px;
-        padding: 6px 10px;
-        bottom: 12px;
-        left: 12px;
-    }
-    
-    .chat-section {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 30vh;
-        max-height: 300px;
-        flex: none;
-        border: none;
-        border-top: 1px solid #3c4043;
-        z-index: 100;
-    }
-    
-    .chat-header {
-        padding: 12px 16px;
-        font-size: 14px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-    }
-    
-    #messages {
-        flex: 1;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 8px 12px;
-        gap: 6px;
-    }
-    
-    .message {
-        margin-bottom: 6px;
-    }
-    
-    .message-user {
-        font-size: 11px;
-    }
-    
-    .message-text {
-        font-size: 13px;
-    }
-    
-    .message-time {
-        font-size: 10px;
-    }
-    
-    .chat-input {
-        padding: 10px 12px;
-        gap: 8px;
-        min-height: 50px;
-    }
-    
-    .chat-input input {
-        padding: 12px 14px;
-        font-size: 16px;
-        min-height: 40px;
-        border-radius: 20px;
-    }
-    
-    .chat-input button {
-        padding: 10px 18px;
-        font-size: 14px;
-        min-height: 40px;
-        border-radius: 20px;
-    }
-    
-    .topbar {
-        padding: 10px 14px;
-        min-height: 56px;
-        gap: 10px;
-    }
-    
-    .topbar h1 {
-        font-size: 16px;
-    }
-    
-    .btn {
-        padding: 10px 14px;
-        font-size: 13px;
-        min-height: 40px;
-    }
-}
+        .video-container {
+            position: relative;
+            background: #0a0a0a;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-/* Video Section - Google Meet Style */
-#videosSection {
-    background: #202124;
-    padding: 0;
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-#videos {
-    display: grid;
-    gap: 4px;
-    height: 100%;
-    width: 100%;
-    padding: 4px;
-    auto-flow: dense;
-    overflow-y: auto;
-}
+        .video-label {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--white);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            max-width: 85%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-.video-container {
-    position: relative;
-    background: #202124;
-    border-radius: 8px;
-    overflow: hidden;
-    aspect-ratio: 16/9;
-    width: 100%;
-}
+        .user-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--light);
+        }
 
-.video-container video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+        .user-placeholder-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
 
-.video-label {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    background: rgba(32, 33, 36, 0.9);
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    max-width: 85%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    backdrop-filter: blur(8px);
-}
+        .user-placeholder-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
 
-/* Chat Section - Google Meet Style */
-.chat-section {
-    background: #292a2d;
-    display: flex;
-    flex-direction: column;
-    border-left: 1px solid #3c4043;
-}
+        /* CHAT SECTION */
+        .chat-section {
+            background: var(--secondary);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #1e2125;
+        }
 
-.chat-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid #3c4043;
-    font-size: 15px;
-    font-weight: 500;
-    color: #ffffff;
-    flex-shrink: 0;
-}
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1e2125;
+            font-weight: 600;
+            font-size: 14px;
+        }
 
-#messages {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 12px;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
 
-.message {
-    margin-bottom: 8px;
-    animation: slideIn 0.3s ease;
-}
+        .message {
+            animation: slideIn 0.3s ease;
+            word-break: break-word;
+        }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.message-user {
-    font-weight: 600;
-    color: #8ab4f8;
-    font-size: 12px;
-}
+        .message-author {
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
 
-.message-text {
-    color: #e8eaed;
-    margin-top: 4px;
-    word-wrap: break-word;
-    font-size: 14px;
-    line-height: 1.4;
-}
+        .message-text {
+            font-size: 13px;
+            color: var(--white);
+            line-height: 1.4;
+        }
 
-.message-time {
-    font-size: 11px;
-    color: #9aa0a6;
-    margin-top: 4px;
-}
+        .system-message {
+            text-align: center;
+            font-size: 12px;
+            color: var(--light);
+            padding: 4px 8px;
+            background: rgba(88, 101, 242, 0.1);
+            border-radius: 4px;
+        }
 
-.system-message {
-    text-align: center;
-    color: #9aa0a6;
-    font-size: 12px;
-    font-style: italic;
-    padding: 8px 6px;
-    margin: 4px 0;
-}
+        .chat-input {
+            padding: 12px;
+            border-top: 1px solid #1e2125;
+            display: flex;
+            gap: 8px;
+        }
 
-.chat-input {
-    padding: 12px;
-    border-top: 1px solid #3c4043;
-    display: flex;
-    gap: 10px;
-    flex-shrink: 0;
-    background: #292a2d;
-}
+        #chatInput {
+            flex: 1;
+            padding: 10px 12px;
+            background: #1e2125;
+            border: 1px solid #2c2f33;
+            border-radius: 20px;
+            color: var(--white);
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
 
-.chat-input input {
-    flex: 1;
-    padding: 10px 14px;
-    border: 1px solid #5f6368;
-    border-radius: 20px;
-    background: #3c3f42;
-    color: white;
-    font-size: 14px;
-    font-size: 16px;
-    transition: all 0.3s;
-}
+        #chatInput:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #2c2f33;
+        }
 
-.chat-input input:focus {
-    outline: none;
-    border-color: #8ab4f8;
-    background: #464849;
-}
+        .chat-send {
+            padding: 8px 16px;
+            background: var(--primary);
+            border: none;
+            border-radius: 20px;
+            color: var(--white);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+            min-height: auto;
+            margin-bottom: 0;
+        }
 
-.chat-input button {
-    padding: 10px 16px;
-    background: #2563eb;
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-}
+        .chat-send:hover {
+            transform: scale(1.05);
+        }
 
-.chat-input button:hover {
-    background: #1d4ed8;
-}
+        /* REQUEST TO JOIN MODAL */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
 
-/* Scrollbar Styling - Google Meet Style */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
+        .modal.active {
+            display: flex;
+        }
 
-::-webkit-scrollbar-track {
-    background: transparent;
-}
+        .modal-content {
+            background: var(--secondary);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            animation: slideUp 0.3s ease;
+        }
 
-::-webkit-scrollbar-thumb {
-    background: #5f6368;
-    border-radius: 4px;
-}
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #9aa0a6;
-}
+        .modal-message {
+            font-size: 14px;
+            color: var(--light);
+            margin-bottom: 20px;
+        }
 
-/* Status message - Google Meet Style */
-.status-message {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    left: auto;
-    background: #d33b27;
-    color: white;
-    padding: 14px 18px;
-    border-radius: 8px;
-    z-index: 999;
-    font-size: 14px;
-    animation: slideIn 0.3s ease;
-    max-width: 400px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    line-height: 1.5;
-    word-wrap: break-word;
-}
+        .request-item {
+            background: var(--dark);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.status-message.warning {
-    background: #f57c00;
-}
+        .request-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
 
-.status-message.info {
-    background: #1f73b7;
-}
+        .request-actions {
+            display: flex;
+            gap: 8px;
+        }
 
-@media (max-width: 767px) {
-    .status-message {
-        bottom: 350px;
-        right: 10px;
-        left: 10px;
-        text-align: center;
-        max-width: none;
-        font-size: 13px;
-        padding: 14px 12px;
-    }
-}
-</style>
+        .btn-approve {
+            padding: 6px 12px;
+            background: var(--success);
+            border: none;
+            border-radius: 6px;
+            color: var(--white);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-approve:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-deny {
+            padding: 6px 12px;
+            background: var(--danger);
+            border: none;
+            border-radius: 6px;
+            color: var(--white);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-deny:hover {
+            transform: scale(1.05);
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--light);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* NOTIFICATIONS */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: var(--white);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            animation: slideIn 0.3s ease;
+            z-index: 500;
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            #videosSection {
+                flex: 1.5;
+                border-bottom: 1px solid #1e2125;
+            }
+
+            #videos {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-section {
+                flex: 1;
+                border-left: none;
+                max-height: 35vh;
+            }
+
+            .header {
+                padding: 10px 14px;
+                min-height: 48px;
+            }
+
+            .header-title {
+                font-size: 14px;
+            }
+
+            .header-info {
+                font-size: 12px;
+                gap: 8px;
+            }
+
+            .header-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .modal-content {
+                max-width: 90%;
+            }
+
+            .notification {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .start-container {
+                max-width: 90%;
+            }
+
+            .start-container h1 {
+                font-size: 24px;
+            }
+
+            .header-title {
+                font-size: 13px;
+            }
+
+            .header-info {
+                display: none;
+            }
+
+            .video-label {
+                font-size: 11px;
+                padding: 4px 8px;
+                bottom: 8px;
+                left: 8px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- START SCREEN -->
+    <div id="startScreen">
+        <div class="start-container">
+            <h1>📹 Video Call</h1>
+            <p>Start a call or join using a code</p>
+            
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="nameInput" 
+                    placeholder="Your name"
+                    maxlength="20"
+                >
+            </div>
 
-<!-- Username Modal -->
-<div id="usernameModal">
-    <div class="modal-content">
-        <h2>📹 Video Call</h2>
-        <p>Join a call with up to 8 people</p>
-        <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20" />
-        <button id="joinBtn" onclick="submitUsername(event)">Join Call</button>
-    </div>
-</div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="createCall()">
+                    ➕ Create Call
+                </button>
+                <button class="btn-secondary" onclick="toggleJoinCode()">
+                    🔗 Join Code
+                </button>
+            </div>
 
-<!-- Main App -->
-<div class="container" style="display: none;" id="mainApp">
-    <div class="topbar">
-        <div class="topbar-left">
-            <h1>📹 Call</h1>
-            <span id="participantCount">0</span>
-        </div>
-        <div class="topbar-right">
-            <button class="btn btn-primary" onclick="shareLink()">📤 Share</button>
-        </div>
-    </div>
-    
-    <div class="main-content">
-        <div id="videosSection">
-            <div id="videos"></div>
-        </div>
-        
-        <div class="chat-section">
-            <div class="chat-header">💬 Chat</div>
-            <div id="messages"></div>
-            <div class="chat-input">
-                <input type="text" id="chatInput" placeholder="Type message..." maxlength="500" />
-                <button onclick="sendMessage()">📤</button>
+            <div id="joinCodeContainer" style="display: none; margin-top: 15px;">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="codeInput" 
+                        placeholder="Enter room code"
+                        maxlength="10"
+                    >
+                </div>
+                <button class="btn-primary" onclick="joinCall()">
+                    🚀 Join Call
+                </button>
             </div>
         </div>
     </div>
-</div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-let localStream;
-let username;
-let roomId;
-const peers = {};
-let isMobile = false;
+    <!-- CALL SCREEN -->
+    <div id="callScreen">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">📹 Room: <span id="roomCode">-</span></div>
+            <div class="header-info">
+                <span>👥 <span id="participantCount">0</span></span>
+                <span id="hostBadge" style="display: none; color: var(--primary);">👑 HOST</span>
+            </div>
+            <button class="header-button" onclick="shareLink()">📤 Share</button>
+            <button class="header-button" onclick="leaveCall()">👋 Leave</button>
+        </div>
 
-const iceServers = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" }
-    ]
-};
+        <!-- Content -->
+        <div class="content">
+            <!-- Videos -->
+            <div id="videosSection">
+                <div id="videos"></div>
+            </div>
 
-// Detect mobile
-function detectMobile() {
-    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-    return isMobile;
-}
+            <!-- Chat -->
+            <div class="chat-section" style="width: 300px;">
+                <div class="chat-header">💬 Chat</div>
+                <div id="messages"></div>
+                <div class="chat-input">
+                    <input 
+                        type="text" 
+                        id="chatInput" 
+                        placeholder="Message..."
+                        maxlength="500"
+                    >
+                    <button class="chat-send" onclick="sendMessage()">↩️</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// Scroll to bottom of messages only
-function scrollMessagesToBottom() {
-    const messagesDiv = document.getElementById('messages');
-    try {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    } catch (e) {
-        // Silent fail
-    }
-}
+    <!-- REQUEST TO JOIN MODAL -->
+    <div class="modal" id="requestModal">
+        <div class="modal-content">
+            <div class="modal-title">🔔 Join Requests</div>
+            <div class="modal-message" id="requestMessage">No pending requests</div>
+            <div id="requestsList"></div>
+        </div>
+    </div>
 
-// Get video constraints based on device
-function getVideoConstraints() {
-    if (isMobile) {
-        return {
-            video: { width: { max: 320 }, height: { max: 240 } },
-            audio: true
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // GLOBAL STATE
+        const state = {
+            socket: io(),
+            roomId: null,
+            username: null,
+            isHost: false,
+            localStream: null,
+            peers: {},
+            joinRequests: {}
         };
-    }
-    return {
-        video: { width: { max: 640 }, height: { max: 480 } },
-        audio: true
-    };
-}
 
-// Auto-scaling for responsive design
-function applyResponsiveScaling() {
-    const viewport = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        aspectRatio: window.innerWidth / window.innerHeight,
-        dpi: window.devicePixelRatio
-    };
-    
-    const root = document.documentElement;
-    
-    // Scale base font size based on viewport width
-    let baseFontSize = 16;
-    if (viewport.width < 360) {
-        baseFontSize = 14;
-    } else if (viewport.width < 420) {
-        baseFontSize = 15;
-    } else if (viewport.width > 800) {
-        baseFontSize = 18;
-    }
-    
-    root.style.setProperty('--base-font', baseFontSize + 'px');
-    
-    // Adjust video grid columns based on screen size
-    const videosDiv = document.getElementById('videos');
-    if (videosDiv && isMobile) {
-        if (viewport.width < 360) {
-            videosDiv.style.gridTemplateColumns = '1fr';
-        } else if (viewport.width < 420) {
-            videosDiv.style.gridTemplateColumns = '1fr';
+        // STARTUP
+        window.addEventListener('load', () => {
+            applyResponsiveScaling();
+            window.addEventListener('resize', applyResponsiveScaling);
+            window.addEventListener('orientationchange', applyResponsiveScaling);
+            
+            document.getElementById('nameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') createCall();
+            });
+            
+            document.getElementById('codeInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') joinCall();
+            });
+            
+            document.getElementById('chatInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        });
+
+        // RESPONSIVE SCALING
+        function applyResponsiveScaling() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            // Adjust chat section width based on screen size
+            const chatSection = document.querySelector('.chat-section');
+            if (chatSection) {
+                if (width < 768) {
+                    chatSection.style.width = '100%';
+                } else if (width < 1024) {
+                    chatSection.style.width = '280px';
+                } else {
+                    chatSection.style.width = '320px';
+                }
+            }
+
+            // Adjust video grid columns
+            const videosDiv = document.getElementById('videos');
+            if (videosDiv) {
+                if (width < 480) {
+                    videosDiv.style.gridTemplateColumns = '1fr';
+                } else if (width < 768) {
+                    videosDiv.style.gridTemplateColumns = 'repeat(2, 1fr)';
+                } else if (width < 1024) {
+                    videosDiv.style.gridTemplateColumns = 'repeat(2, 1fr)';
+                } else {
+                    videosDiv.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
+                }
+            }
         }
-    }
-    
-    // Adjust chat section height for mobile
-    const chatSection = document.querySelector('.chat-section');
-    if (chatSection && isMobile) {
-        const availableHeight = viewport.height - 56 - 50;
-        const chatHeight = Math.max(150, Math.min(300, availableHeight * 0.3));
-        chatSection.style.maxHeight = chatHeight + 'px';
-    }
-}
 
-// Handle window resize with debounce
-let resizeTimeout;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(applyResponsiveScaling, 200);
-});
+        // UI FUNCTIONS
+        function toggleJoinCode() {
+            const container = document.getElementById('joinCodeContainer');
+            container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        }
 
-// Handle orientation change
-window.addEventListener('orientationchange', () => {
-    setTimeout(applyResponsiveScaling, 100);
-});
+        function showNotification(message, type = 'success') {
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
 
-function init() {
-    console.log('Initializing app...');
-    detectMobile();
-    console.log('Mobile detected:', isMobile);
-    
-    // Apply responsive scaling
-    applyResponsiveScaling();
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    roomId = urlParams.get('room') || generateRoomId();
-    window.history.replaceState({}, '', `?room=${roomId}`);
-    
-    // Ensure modal is visible
-    document.getElementById('usernameModal').style.display = 'flex';
-    
-    document.getElementById('usernameInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') submitUsername();
-    });
-    
-    document.getElementById('chatInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
-}
+        // CALL FUNCTIONS
+        async function createCall() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (!name) {
+                showNotification('Please enter your name', 'error');
+                return;
+            }
 
-function generateRoomId() {
-    return Math.random().toString(36).substring(2, 10);
-}
+            state.username = name;
+            state.isHost = true;
+            state.roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('callScreen').style.display = 'flex';
+            document.getElementById('roomCode').textContent = state.roomId;
+            document.getElementById('hostBadge').style.display = 'inline-block';
 
-async function submitUsername() {
-    const input = document.getElementById('usernameInput');
-    username = input.value.trim();
-    
-    if (!username) {
-        alert('Please enter your name');
-        return;
-    }
-    
-    console.log('Username submitted:', username);
-    
-    const button = document.getElementById('joinBtn');
-    button.disabled = true;
-    button.innerHTML = '<span class="loading-spinner"></span>Connecting...';
-    
-    await startCall(button);
-}
+            await getMedia();
+            state.socket.emit('create-room', state.roomId, state.username);
+            setupSocketListeners();
+            applyResponsiveScaling();
+        }
 
-async function showPermissionInfo() {
-    const modal = document.getElementById('usernameModal');
-    
-    // Check if permission info already shown
-    if (modal.querySelector('.permission-info')) {
-        return;
-    }
-    
-    const permInfo = document.createElement('div');
-    permInfo.className = 'permission-info';
-    permInfo.innerHTML = `
-        <strong>📱 Permission Request</strong>
-        Allow camera & microphone access when the browser asks
-    `;
-    
-    const input = document.getElementById('usernameInput');
-    input.parentNode.insertBefore(permInfo, input.nextSibling);
-}
+        function joinCall() {
+            const code = document.getElementById('codeInput').value.trim().toUpperCase();
+            const name = document.getElementById('nameInput').value.trim();
+            
+            if (!code) {
+                showNotification('Please enter room code', 'error');
+                return;
+            }
+            if (!name) {
+                showNotification('Please enter your name', 'error');
+                return;
+            }
 
-async function startCall(button) {
-    try {
-        console.log('Starting call...');
-        
-        // Step 1: Try to get media (camera + audio)
-        try {
-            const constraints = getVideoConstraints();
-            console.log('Requesting media with constraints:', constraints);
-            localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            console.log('✓ Got camera + audio');
-        } catch (error) {
-            console.warn('Camera failed, trying audio only...', error.name);
+            state.username = name;
+            state.roomId = code;
+            state.isHost = false;
+
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('callScreen').style.display = 'flex';
+            document.getElementById('roomCode').textContent = state.roomId;
+
+            await getMedia();
+            state.socket.emit('request-join', state.roomId, state.username);
+            setupSocketListeners();
+            applyResponsiveScaling();
+        }
+
+        function leaveCall() {
+            if (state.localStream) {
+                state.localStream.getTracks().forEach(t => t.stop());
+            }
+            Object.values(state.peers).forEach(p => p.pc.close());
+            state.socket.emit('leave-call', state.roomId);
+            location.reload();
+        }
+
+        function shareLink() {
+            const link = `${window.location.origin}?join=${state.roomId}`;
+            if (navigator.share) {
+                navigator.share({ title: 'Join my call', url: link });
+            } else {
+                navigator.clipboard.writeText(link);
+                showNotification('Link copied!', 'success');
+            }
+        }
+
+        // MEDIA
+        async function getMedia() {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                console.log('✓ Got audio only');
-            } catch (audioError) {
-                console.warn('Audio failed too, allowing chat-only...', audioError.name);
-                localStream = null;
+                state.localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { max: 640 }, height: { max: 480 } },
+                    audio: true
+                });
+                addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
+            } catch (error) {
+                try {
+                    state.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    addPlaceholder(state.username + ' (You)');
+                    showNotification('Audio only', 'error');
+                } catch (e) {
+                    addPlaceholder(state.username + ' (Chat only)');
+                    showNotification('No camera/mic', 'error');
+                }
             }
         }
-        
-        console.log('localStream:', localStream ? 'has media' : 'chat-only');
-        
-        // Step 2: Show main app
-        document.getElementById('usernameModal').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'flex';
-        console.log('✓ Main app visible');
-        
-        // Step 3: Add video or chat-only placeholder
-        if (localStream) {
-            const myId = socket.id || 'local-' + Date.now();
-            addVideoElement(myId, localStream, username + ' (You)');
-            console.log('✓ Added video element');
-        } else {
-            addPlaceholderElement(username + ' (Chat Only)');
-            console.log('✓ Added chat-only placeholder');
-        }
-        
-        // Step 4: Emit join-room event
-        console.log('Joining room:', roomId);
-        socket.emit('join-room', roomId, username);
-        
-        // Step 5: Setup socket listeners
-        setupSocketListeners();
-        console.log('✓ Call started successfully');
-        
-    } catch (error) {
-        console.error('Fatal error in startCall:', error);
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = '🔄 Try Again';
-        }
-        showStatus('Connection failed: ' + error.message, 'error', 4000);
-    }
-}
 
-// Add placeholder for users without camera
-function addPlaceholderElement(label) {
-    const myId = socket.id || 'local-' + Date.now();
-    
-    const container = document.createElement('div');
-    container.className = 'video-container placeholder';
-    container.id = `video-${myId}`;
-    container.style.background = '#3c4043';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.justifyContent = 'center';
-    
-    const content = document.createElement('div');
-    content.style.textAlign = 'center';
-    content.style.color = '#9aa0a6';
-    
-    const icon = document.createElement('div');
-    icon.textContent = '🎤';
-    icon.style.fontSize = '48px';
-    icon.style.marginBottom = '10px';
-    
-    const text = document.createElement('div');
-    text.textContent = 'Audio Only';
-    text.style.fontSize = '14px';
-    text.style.fontWeight = '500';
-    
-    content.appendChild(icon);
-    content.appendChild(text);
-    container.appendChild(content);
-    
-    const labelDiv = document.createElement('div');
-    labelDiv.className = 'video-label';
-    labelDiv.textContent = label;
-    container.appendChild(labelDiv);
-    
-    document.getElementById('videos').appendChild(container);
-}
-
-function handlePermissionError(error, button) {
-    let message = '';
-    
-    console.log('Error name:', error.name);
-    console.log('Error message:', error.message);
-    
-    message = `⚠️ Error: ${error.message || 'Failed to access camera/microphone'}\n\nYou can still use chat!`;
-    
-    if (button) {
-        button.disabled = false;
-        button.innerHTML = '🔄 Try Again';
-    }
-    
-    showStatus(message, 'warning', 5000);
-}
-
-function setupSocketListeners() {
-    socket.on('room-full', (data) => {
-        showStatus(data.message);
-        setTimeout(() => {
-            window.location.reload();
-        }, 2000);
-    });
-    
-    socket.on('existing-users', (users) => {
-        users.forEach(user => {
-            createPeerConnection(user.socketId, true, user.username);
-        });
-        updateParticipantCount(users.length + 1);
-    });
-    
-    socket.on('user-joined', (user) => {
-        createPeerConnection(user.socketId, false, user.username);
-        updateParticipantCount(Object.keys(peers).length + 1);
-    });
-    
-    socket.on('signal', async (data) => {
-        const peer = peers[data.from];
-        if (!peer) return;
-        
-        try {
-            if (data.signal.type === 'offer') {
-                await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
-                const answer = await peer.pc.createAnswer();
-                await peer.pc.setLocalDescription(answer);
-                socket.emit('signal', { to: data.from, signal: answer });
-            } else if (data.signal.type === 'answer') {
-                await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
-            } else if (data.signal.candidate) {
-                await peer.pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+        function addVideoElement(id, stream, label) {
+            let container = document.getElementById(`video-${id}`);
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'video-container';
+                container.id = `video-${id}`;
+                document.getElementById('videos').appendChild(container);
             }
-        } catch (error) {
-            console.error('Signaling error:', error);
-        }
-    });
-    
-    socket.on('user-left', (socketId) => {
-        if (peers[socketId]) {
-            peers[socketId].pc.close();
-            removeVideoElement(socketId);
-            delete peers[socketId];
-            updateParticipantCount(Object.keys(peers).length + 1);
-        }
-    });
-    
-    socket.on('chat-message', (data) => {
-        addChatMessage(data.username, data.message, data.timestamp);
-    });
-}
 
-function createPeerConnection(socketId, isInitiator, peerUsername) {
-    const pc = new RTCPeerConnection(iceServers);
-    
-    localStream.getTracks().forEach(track => {
-        pc.addTrack(track, localStream);
-    });
-    
-    pc.ontrack = (event) => {
-        addVideoElement(socketId, event.streams[0], peerUsername);
-    };
-    
-    pc.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.emit('signal', {
-                to: socketId,
-                signal: { candidate: event.candidate }
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.playsInline = true;
+            if (id === state.socket.id) video.muted = true;
+
+            container.innerHTML = '';
+            container.appendChild(video);
+
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'video-label';
+            labelDiv.textContent = label;
+            container.appendChild(labelDiv);
+
+            applyResponsiveScaling();
+        }
+
+        function addPlaceholder(label) {
+            const container = document.createElement('div');
+            container.className = 'video-container';
+            container.id = `video-${state.socket.id}`;
+            
+            const content = document.createElement('div');
+            content.className = 'user-placeholder';
+            content.innerHTML = `
+                <div class="user-placeholder-icon">🎤</div>
+                <div class="user-placeholder-name">${label}</div>
+            `;
+            
+            container.appendChild(content);
+
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'video-label';
+            labelDiv.textContent = label;
+            container.appendChild(labelDiv);
+
+            document.getElementById('videos').appendChild(container);
+        }
+
+        // CHAT
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            state.socket.emit('chat-message', state.roomId, state.username, text);
+            input.value = '';
+        }
+
+        function addMessage(author, text) {
+            const msg = document.createElement('div');
+            msg.className = 'message';
+            msg.innerHTML = `
+                <div class="message-author">${author}</div>
+                <div class="message-text">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            `;
+            document.getElementById('messages').appendChild(msg);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+
+        // SOCKET LISTENERS
+        function setupSocketListeners() {
+            state.socket.on('user-joined', (user) => {
+                addMessage('System', `${user.username} joined`);
+                updateParticipantCount();
+            });
+
+            state.socket.on('join-request', (user) => {
+                if (state.isHost) {
+                    state.joinRequests[user.id] = user;
+                    showRequestModal();
+                }
+            });
+
+            state.socket.on('request-approved', () => {
+                addMessage('System', 'You were approved!');
+                state.socket.emit('join-room', state.roomId, state.username);
+            });
+
+            state.socket.on('request-denied', () => {
+                showNotification('Request denied', 'error');
+                leaveCall();
+            });
+
+            state.socket.on('chat-message', (username, text) => {
+                addMessage(username, text);
+            });
+
+            state.socket.on('user-left', (username) => {
+                addMessage('System', `${username} left`);
+                updateParticipantCount();
             });
         }
-    };
-    
-    pc.onerror = (error) => {
-        console.error('Peer connection error:', error);
-    };
-    
-    peers[socketId] = { pc, username: peerUsername };
-    
-    if (isInitiator) {
-        pc.createOffer().then(offer => {
-            return pc.setLocalDescription(offer);
-        }).then(() => {
-            socket.emit('signal', {
-                to: socketId,
-                signal: pc.localDescription
+
+        function updateParticipantCount() {
+            const count = Object.keys(state.peers).length + 1;
+            document.getElementById('participantCount').textContent = count;
+        }
+
+        function showRequestModal() {
+            const modal = document.getElementById('requestModal');
+            const list = document.getElementById('requestsList');
+            list.innerHTML = '';
+
+            Object.entries(state.joinRequests).forEach(([id, user]) => {
+                const item = document.createElement('div');
+                item.className = 'request-item';
+                item.innerHTML = `
+                    <div class="request-name">${user.username}</div>
+                    <div class="request-actions">
+                        <button class="btn-approve" onclick="approveRequest('${id}')">✓ Allow</button>
+                        <button class="btn-deny" onclick="denyRequest('${id}')">✗ Deny</button>
+                    </div>
+                `;
+                list.appendChild(item);
             });
-        }).catch(console.error);
-    }
-}
 
-function addVideoElement(id, stream, label) {
-    if (document.getElementById(`video-${id}`)) return;
-    
-    const container = document.createElement('div');
-    container.className = 'video-container';
-    container.id = `video-${id}`;
-    
-    const video = document.createElement('video');
-    video.srcObject = stream;
-    video.autoplay = true;
-    video.playsInline = true;
-    if (id === socket.id) video.muted = true;
-    
-    const labelDiv = document.createElement('div');
-    labelDiv.className = 'video-label';
-    labelDiv.textContent = label;
-    
-    container.appendChild(video);
-    container.appendChild(labelDiv);
-    document.getElementById('videos').appendChild(container);
-    
-    // Apply responsive scaling after adding video
-    setTimeout(applyResponsiveScaling, 100);
-}
+            modal.classList.add('active');
+        }
 
-function removeVideoElement(id) {
-    const element = document.getElementById(`video-${id}`);
-    if (element) {
-        element.remove();
-        // Apply responsive scaling after removing video
-        setTimeout(applyResponsiveScaling, 100);
-    }
-}
+        function approveRequest(userId) {
+            state.socket.emit('approve-request', state.roomId, userId);
+            delete state.joinRequests[userId];
+            showRequestModal();
+        }
 
-function updateParticipantCount(count) {
-    document.getElementById('participantCount').textContent = `${count} participant${count !== 1 ? 's' : ''}`;
-}
-
-function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-    if (!message) return;
-    socket.emit('chat-message', message);
-    input.value = '';
-    input.focus();
-}
-
-function addChatMessage(user, message, timestamp) {
-    const messagesDiv = document.getElementById('messages');
-    
-    // Check if user is scrolled near bottom before adding message
-    const isScrolledNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
-    
-    if (user === 'System') {
-        const systemMsg = document.createElement('div');
-        systemMsg.className = 'system-message';
-        systemMsg.textContent = message;
-        messagesDiv.appendChild(systemMsg);
-    } else {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message';
-        
-        const userDiv = document.createElement('div');
-        userDiv.className = 'message-user';
-        userDiv.textContent = user;
-        
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-        textDiv.textContent = message;
-        
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'message-time';
-        timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
-        
-        messageDiv.appendChild(userDiv);
-        messageDiv.appendChild(textDiv);
-        messageDiv.appendChild(timeDiv);
-        messagesDiv.appendChild(messageDiv);
-    }
-    
-    // Auto scroll to bottom if user was already viewing recent messages
-    if (isScrolledNearBottom) {
-        scrollMessagesToBottom();
-    }
-}
-
-function shareLink() {
-    const link = window.location.href;
-    if (navigator.share) {
-        navigator.share({ title: 'Join my video call', url: link });
-    } else {
-        navigator.clipboard.writeText(link).then(() => {
-            showStatus('Link copied! 📋');
-        }).catch(() => {
-            prompt('Share this link:', link);
-        });
-    }
-}
-
-function showStatus(message, type = 'error', duration = 3000) {
-    const status = document.createElement('div');
-    status.className = `status-message ${type}`;
-    
-    // Handle multi-line messages
-    if (message.includes('\n')) {
-        status.innerHTML = message.split('\n').join('<br>');
-    } else {
-        status.textContent = message;
-    }
-    
-    document.body.appendChild(status);
-    
-    // Longer timeout for error messages
-    const timeout = type === 'error' ? 5000 : duration;
-    setTimeout(() => status.remove(), timeout);
-}
-
-init();
-</script>
-
+        function denyRequest(userId) {
+            state.socket.emit('deny-request', state.roomId, userId);
+            delete state.joinRequests[userId];
+            showRequestModal();
+        }
+    </script>
 </body>
 </html>

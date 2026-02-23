@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Video Call</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #202124;
+    color: white;
+    overflow: hidden;
+}
+
+/* Root font size for scaling */
+:root {
+    --base-font: 16px;
+    --scale-factor: 1;
+}
+
+/* Username Modal - Google Meet Style */
+#usernameModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #202124 0%, #292a2d 100%);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: #292a2d;
+    padding: 30px 20px;
+    border-radius: 16px;
+    text-align: center;
+    min-width: 280px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+}
+
+.modal-content p {
+    color: #bdc1c6;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #5f6368;
+    border-radius: 8px;
+    background: #202124;
+    color: white;
+    font-size: 16px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s;
+}
+
+.modal-content input:focus {
+    outline: none;
+    border-color: #8ab4f8;
+    background: #2d2e30;
+}
+
+.modal-content button {
+    width: 100%;
+    padding: 14px 24px;
+    background: #8ab4f8;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.modal-content button:hover:not(:disabled) {
+    background: #aecbfa;
+    box-shadow: 0 4px 12px rgba(138, 180, 248, 0.3);
+}
+
+.modal-content button:disabled {
+    background: #5f6368;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(96, 165, 250, 0.3);
+    border-radius: 50%;
+    border-top-color: #60a5fa;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.permission-info {
+    background: #3c4043;
+    padding: 12px 14px;
+    border-left: 3px solid #8ab4f8;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-size: 13px;
+    color: #bdc1c6;
+}
+
+.permission-info strong {
+    display: block;
+    color: #ffffff;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+@media (max-width: 767px) {
+    .modal-content {
+        padding: 20px 15px;
+        min-width: 85%;
+    }
+    
+    .modal-content h2 {
+        font-size: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .modal-content p {
+        font-size: 13px;
+    }
+    
+    .modal-content input {
+        padding: 14px;
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+    
+    .modal-content button {
+        padding: 16px;
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+}
+
+/* Main Layout */
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    padding-top: safe-area-inset-top;
+    padding-bottom: safe-area-inset-bottom;
+}
+
+/* Top Bar - Google Meet Style */
+.topbar {
+    background: #202124;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #3c4043;
+    flex-shrink: 0;
+    min-height: 56px;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.topbar h1 {
+    font-size: 18px;
+    color: #ffffff;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.topbar-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: #8ab4f8;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #aecbfa;
+    box-shadow: 0 2px 8px rgba(138, 180, 248, 0.3);
+}
+
+#participantCount {
+    color: #bdc1c6;
+    font-size: 13px;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* Main Content */
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* Desktop Layout - Google Meet Style */
+@media (min-width: 1024px) {
+    .main-content {
+        flex-direction: row;
+    }
+    
+    #videosSection {
+        flex: 1;
+        overflow: hidden;
+    }
+    
+    #videos {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .chat-section {
+        width: 360px;
+        border-left: 1px solid #3c4043;
+    }
+}
+
+/* Tablet Layout - Google Meet Style */
+@media (max-width: 1023px) and (min-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    #videosSection {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+    
+    #videos {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 4px;
+    }
+    
+    .chat-section {
+        height: 200px;
+        border-left: none;
+        border-top: 1px solid #3c4043;
+    }
+    
+    .chat-header {
+        font-size: 14px;
+    }
+    
+    .video-label {
+        font-size: 12px;
+    }
+}
+
+/* Mobile Layout - Google Meet Style */
+@media (max-width: 767px) {
+    :root {
+        --base-font: 14px;
+    }
+    
+    .main-content {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    #videosSection {
+        flex: 1;
+        padding: 0;
+        overflow: hidden;
+        background: #202124;
+    }
+    
+    #videos {
+        grid-template-columns: 1fr;
+        gap: 0;
+        height: 100%;
+        padding: 0;
+    }
+    
+    .video-container {
+        aspect-ratio: 9/16;
+        width: 100%;
+        min-height: 0;
+        border-radius: 0;
+    }
+    
+    .video-label {
+        font-size: 12px;
+        padding: 6px 10px;
+        bottom: 12px;
+        left: 12px;
+    }
+    
+    .chat-section {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30vh;
+        max-height: 300px;
+        flex: none;
+        border: none;
+        border-top: 1px solid #3c4043;
+        z-index: 100;
+    }
+    
+    .chat-header {
+        padding: 12px 16px;
+        font-size: 14px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    #messages {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 12px;
+        gap: 6px;
+    }
+    
+    .message {
+        margin-bottom: 6px;
+    }
+    
+    .message-user {
+        font-size: 11px;
+    }
+    
+    .message-text {
+        font-size: 13px;
+    }
+    
+    .message-time {
+        font-size: 10px;
+    }
+    
+    .chat-input {
+        padding: 10px 12px;
+        gap: 8px;
+        min-height: 50px;
+    }
+    
+    .chat-input input {
+        padding: 12px 14px;
+        font-size: 16px;
+        min-height: 40px;
+        border-radius: 20px;
+    }
+    
+    .chat-input button {
+        padding: 10px 18px;
+        font-size: 14px;
+        min-height: 40px;
+        border-radius: 20px;
+    }
+    
+    .topbar {
+        padding: 10px 14px;
+        min-height: 56px;
+        gap: 10px;
+    }
+    
+    .topbar h1 {
+        font-size: 16px;
+    }
+    
+    .btn {
+        padding: 10px 14px;
+        font-size: 13px;
+        min-height: 40px;
+    }
+}
+
+/* Video Section - Google Meet Style */
+#videosSection {
+    background: #202124;
+    padding: 0;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#videos {
+    display: grid;
+    gap: 4px;
+    height: 100%;
+    width: 100%;
+    padding: 4px;
+    auto-flow: dense;
+    overflow-y: auto;
+}
+
+.video-container {
+    position: relative;
+    background: #202124;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    width: 100%;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(32, 33, 36, 0.9);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 85%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+}
+
+/* Chat Section - Google Meet Style */
+.chat-section {
+    background: #292a2d;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #3c4043;
+}
+
+.chat-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #3c4043;
+    font-size: 15px;
+    font-weight: 500;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.message {
+    margin-bottom: 8px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-user {
+    font-weight: 600;
+    color: #8ab4f8;
+    font-size: 12px;
+}
+
+.message-text {
+    color: #e8eaed;
+    margin-top: 4px;
+    word-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #9aa0a6;
+    margin-top: 4px;
+}
+
+.system-message {
+    text-align: center;
+    color: #9aa0a6;
+    font-size: 12px;
+    font-style: italic;
+    padding: 8px 6px;
+    margin: 4px 0;
+}
+
+.chat-input {
+    padding: 12px;
+    border-top: 1px solid #3c4043;
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    background: #292a2d;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #5f6368;
+    border-radius: 20px;
+    background: #3c3f42;
+    color: white;
+    font-size: 14px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.chat-input input:focus {
+    outline: none;
+    border-color: #8ab4f8;
+    background: #464849;
+}
+
+.chat-input button {
+    padding: 10px 16px;
+    background: #2563eb;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.chat-input button:hover {
+    background: #1d4ed8;
+}
+
+/* Scrollbar Styling - Google Meet Style */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #5f6368;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #9aa0a6;
+}
+
+/* Status message - Google Meet Style */
+.status-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    left: auto;
+    background: #d33b27;
+    color: white;
+    padding: 14px 18px;
+    border-radius: 8px;
+    z-index: 999;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.status-message.warning {
+    background: #f57c00;
+}
+
+.status-message.info {
+    background: #1f73b7;
+}
+
+@media (max-width: 767px) {
+    .status-message {
+        bottom: 350px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
+        max-width: none;
+        font-size: 13px;
+        padding: 14px 12px;
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- Username Modal -->
+<div id="usernameModal">
+    <div class="modal-content">
+        <h2>📹 Video Call</h2>
+        <p>Join a call with up to 8 people</p>
+        <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20" />
+        <button id="joinBtn" onclick="submitUsername(event)">Join Call</button>
+    </div>
+</div>
+
+<!-- Main App -->
+<div class="container" style="display: none;" id="mainApp">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>📹 Call</h1>
+            <span id="participantCount">0</span>
+        </div>
+        <div class="topbar-right">
+            <button class="btn btn-primary" onclick="shareLink()">📤 Share</button>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div id="videosSection">
+            <div id="videos"></div>
+        </div>
+        
+        <div class="chat-section">
+            <div class="chat-header">💬 Chat</div>
+            <div id="messages"></div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Type message..." maxlength="500" />
+                <button onclick="sendMessage()">📤</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let localStream;
+let username;
+let roomId;
+const peers = {};
+let isMobile = false;
+
+const iceServers = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+    ]
+};
+
+// Detect mobile
+function detectMobile() {
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+    return isMobile;
+}
+
+// Scroll to bottom of messages only
+function scrollMessagesToBottom() {
+    const messagesDiv = document.getElementById('messages');
+    try {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } catch (e) {
+        // Silent fail
+    }
+}
+
+// Get video constraints based on device
+function getVideoConstraints() {
+    if (isMobile) {
+        return {
+            video: { width: { max: 320 }, height: { max: 240 } },
+            audio: true
+        };
+    }
+    return {
+        video: { width: { max: 640 }, height: { max: 480 } },
+        audio: true
+    };
+}
+
+// Auto-scaling for responsive design
+function applyResponsiveScaling() {
+    const viewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        aspectRatio: window.innerWidth / window.innerHeight,
+        dpi: window.devicePixelRatio
+    };
+    
+    const root = document.documentElement;
+    
+    // Scale base font size based on viewport width
+    let baseFontSize = 16;
+    if (viewport.width < 360) {
+        baseFontSize = 14;
+    } else if (viewport.width < 420) {
+        baseFontSize = 15;
+    } else if (viewport.width > 800) {
+        baseFontSize = 18;
+    }
+    
+    root.style.setProperty('--base-font', baseFontSize + 'px');
+    
+    // Adjust video grid columns based on screen size
+    const videosDiv = document.getElementById('videos');
+    if (videosDiv && isMobile) {
+        if (viewport.width < 360) {
+            videosDiv.style.gridTemplateColumns = '1fr';
+        } else if (viewport.width < 420) {
+            videosDiv.style.gridTemplateColumns = '1fr';
+        }
+    }
+    
+    // Adjust chat section height for mobile
+    const chatSection = document.querySelector('.chat-section');
+    if (chatSection && isMobile) {
+        const availableHeight = viewport.height - 56 - 50;
+        const chatHeight = Math.max(150, Math.min(300, availableHeight * 0.3));
+        chatSection.style.maxHeight = chatHeight + 'px';
+    }
+}
+
+// Handle window resize with debounce
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(applyResponsiveScaling, 200);
+});
+
+// Handle orientation change
+window.addEventListener('orientationchange', () => {
+    setTimeout(applyResponsiveScaling, 100);
+});
+
+function init() {
+    console.log('Initializing app...');
+    detectMobile();
+    console.log('Mobile detected:', isMobile);
+    
+    // Apply responsive scaling
+    applyResponsiveScaling();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    roomId = urlParams.get('room') || generateRoomId();
+    window.history.replaceState({}, '', `?room=${roomId}`);
+    
+    // Ensure modal is visible
+    document.getElementById('usernameModal').style.display = 'flex';
+    
+    document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitUsername();
+    });
+    
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+}
+
+function generateRoomId() {
+    return Math.random().toString(36).substring(2, 10);
+}
+
+async function submitUsername() {
+    const input = document.getElementById('usernameInput');
+    username = input.value.trim();
+    
+    if (!username) {
+        alert('Please enter your name');
+        return;
+    }
+    
+    console.log('Username submitted:', username);
+    
+    const button = document.getElementById('joinBtn');
+    button.disabled = true;
+    button.innerHTML = '<span class="loading-spinner"></span>Connecting...';
+    
+    await startCall(button);
+}
+
+async function showPermissionInfo() {
+    const modal = document.getElementById('usernameModal');
+    
+    // Check if permission info already shown
+    if (modal.querySelector('.permission-info')) {
+        return;
+    }
+    
+    const permInfo = document.createElement('div');
+    permInfo.className = 'permission-info';
+    permInfo.innerHTML = `
+        <strong>📱 Permission Request</strong>
+        Allow camera & microphone access when the browser asks
+    `;
+    
+    const input = document.getElementById('usernameInput');
+    input.parentNode.insertBefore(permInfo, input.nextSibling);
+}
+
+async function startCall(button) {
+    try {
+        console.log('Starting call...');
+        
+        // Step 1: Hide modal and show main app IMMEDIATELY
+        const modal = document.getElementById('usernameModal');
+        const mainApp = document.getElementById('mainApp');
+        
+        modal.style.display = 'none';
+        mainApp.style.display = 'flex';
+        mainApp.style.visibility = 'visible';
+        
+        console.log('✓ Modal hidden, app visible');
+        
+        // Step 2: Try to get media (background task)
+        setTimeout(async () => {
+            try {
+                const constraints = getVideoConstraints();
+                console.log('Requesting media...');
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✓ Got camera + audio');
+            } catch (error) {
+                console.warn('Camera failed:', error.name);
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    console.log('✓ Got audio only');
+                } catch (audioError) {
+                    console.warn('Audio failed:', audioError.name);
+                    localStream = null;
+                }
+            }
+            
+            // Add video element
+            const myId = socket.id || 'local-' + Date.now();
+            if (localStream) {
+                addVideoElement(myId, localStream, username + ' (You)');
+                console.log('✓ Video added');
+            } else {
+                addPlaceholderElement(username + ' (Chat Only)');
+                console.log('✓ Placeholder added');
+            }
+        }, 100);
+        
+        // Step 3: Join room immediately
+        console.log('Joining room:', roomId);
+        socket.emit('join-room', roomId, username);
+        
+        // Step 4: Setup listeners
+        setupSocketListeners();
+        console.log('✓ Call started!');
+        
+    } catch (error) {
+        console.error('ERROR:', error);
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '🔄 Try Again';
+        }
+    }
+}
+
+// Add placeholder for users without camera
+function addPlaceholderElement(label) {
+    const myId = socket.id || 'local-' + Date.now();
+    
+    const container = document.createElement('div');
+    container.className = 'video-container placeholder';
+    container.id = `video-${myId}`;
+    container.style.background = '#3c4043';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    
+    const content = document.createElement('div');
+    content.style.textAlign = 'center';
+    content.style.color = '#9aa0a6';
+    
+    const icon = document.createElement('div');
+    icon.textContent = '🎤';
+    icon.style.fontSize = '48px';
+    icon.style.marginBottom = '10px';
+    
+    const text = document.createElement('div');
+    text.textContent = 'Audio Only';
+    text.style.fontSize = '14px';
+    text.style.fontWeight = '500';
+    
+    content.appendChild(icon);
+    content.appendChild(text);
+    container.appendChild(content);
+    
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'video-label';
+    labelDiv.textContent = label;
+    container.appendChild(labelDiv);
+    
+    document.getElementById('videos').appendChild(container);
+}
+
+function handlePermissionError(error, button) {
+    let message = '';
+    
+    console.log('Error name:', error.name);
+    console.log('Error message:', error.message);
+    
+    message = `⚠️ Error: ${error.message || 'Failed to access camera/microphone'}\n\nYou can still use chat!`;
+    
+    if (button) {
+        button.disabled = false;
+        button.innerHTML = '🔄 Try Again';
+    }
+    
+    showStatus(message, 'warning', 5000);
+}
+
+function setupSocketListeners() {
+    socket.on('room-full', (data) => {
+        showStatus(data.message);
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    });
+    
+    socket.on('existing-users', (users) => {
+        users.forEach(user => {
+            createPeerConnection(user.socketId, true, user.username);
+        });
+        updateParticipantCount(users.length + 1);
+    });
+    
+    socket.on('user-joined', (user) => {
+        createPeerConnection(user.socketId, false, user.username);
+        updateParticipantCount(Object.keys(peers).length + 1);
+    });
+    
+    socket.on('signal', async (data) => {
+        const peer = peers[data.from];
+        if (!peer) return;
+        
+        try {
+            if (data.signal.type === 'offer') {
+                await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+                const answer = await peer.pc.createAnswer();
+                await peer.pc.setLocalDescription(answer);
+                socket.emit('signal', { to: data.from, signal: answer });
+            } else if (data.signal.type === 'answer') {
+                await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+            } else if (data.signal.candidate) {
+                await peer.pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+            }
+        } catch (error) {
+            console.error('Signaling error:', error);
+        }
+    });
+    
+    socket.on('user-left', (socketId) => {
+        if (peers[socketId]) {
+            peers[socketId].pc.close();
+            removeVideoElement(socketId);
+            delete peers[socketId];
+            updateParticipantCount(Object.keys(peers).length + 1);
+        }
+    });
+    
+    socket.on('chat-message', (data) => {
+        addChatMessage(data.username, data.message, data.timestamp);
+    });
+}
+
+function createPeerConnection(socketId, isInitiator, peerUsername) {
+    const pc = new RTCPeerConnection(iceServers);
+    
+    localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+    });
+    
+    pc.ontrack = (event) => {
+        addVideoElement(socketId, event.streams[0], peerUsername);
+    };
+    
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit('signal', {
+                to: socketId,
+                signal: { candidate: event.candidate }
+            });
+        }
+    };
+    
+    pc.onerror = (error) => {
+        console.error('Peer connection error:', error);
+    };
+    
+    peers[socketId] = { pc, username: peerUsername };
+    
+    if (isInitiator) {
+        pc.createOffer().then(offer => {
+            return pc.setLocalDescription(offer);
+        }).then(() => {
+            socket.emit('signal', {
+                to: socketId,
+                signal: pc.localDescription
+            });
+        }).catch(console.error);
+    }
+}
+
+function addVideoElement(id, stream, label) {
+    if (document.getElementById(`video-${id}`)) return;
+    
+    const container = document.createElement('div');
+    container.className = 'video-container';
+    container.id = `video-${id}`;
+    
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
+    if (id === socket.id) video.muted = true;
+    
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'video-label';
+    labelDiv.textContent = label;
+    
+    container.appendChild(video);
+    container.appendChild(labelDiv);
+    document.getElementById('videos').appendChild(container);
+    
+    // Apply responsive scaling after adding video
+    setTimeout(applyResponsiveScaling, 100);
+}
+
+function removeVideoElement(id) {
+    const element = document.getElementById(`video-${id}`);
+    if (element) {
+        element.remove();
+        // Apply responsive scaling after removing video
+        setTimeout(applyResponsiveScaling, 100);
+    }
+}
+
+function updateParticipantCount(count) {
+    document.getElementById('participantCount').textContent = `${count} participant${count !== 1 ? 's' : ''}`;
+}
+
+function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    socket.emit('chat-message', message);
+    input.value = '';
+    input.focus();
+}
+
+function addChatMessage(user, message, timestamp) {
+    const messagesDiv = document.getElementById('messages');
+    
+    // Check if user is scrolled near bottom before adding message
+    const isScrolledNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
+    
+    if (user === 'System') {
+        const systemMsg = document.createElement('div');
+        systemMsg.className = 'system-message';
+        systemMsg.textContent = message;
+        messagesDiv.appendChild(systemMsg);
+    } else {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        
+        const userDiv = document.createElement('div');
+        userDiv.className = 'message-user';
+        userDiv.textContent = user;
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        textDiv.textContent = message;
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
+        
+        messageDiv.appendChild(userDiv);
+        messageDiv.appendChild(textDiv);
+        messageDiv.appendChild(timeDiv);
+        messagesDiv.appendChild(messageDiv);
+    }
+    
+    // Auto scroll to bottom if user was already viewing recent messages
+    if (isScrolledNearBottom) {
+        scrollMessagesToBottom();
+    }
+}
+
+function shareLink() {
+    const link = window.location.href;
+    if (navigator.share) {
+        navigator.share({ title: 'Join my video call', url: link });
+    } else {
+        navigator.clipboard.writeText(link).then(() => {
+            showStatus('Link copied! 📋');
+        }).catch(() => {
+            prompt('Share this link:', link);
+        });
+    }
+}
+
+function showStatus(message, type = 'error', duration = 3000) {
+    const status = document.createElement('div');
+    status.className = `status-message ${type}`;
+    
+    // Handle multi-line messages
+    if (message.includes('\n')) {
+        status.innerHTML = message.split('\n').join('<br>');
+    } else {
+        status.textContent = message;
+    }
+    
+    document.body.appendChild(status);
+    
+    // Longer timeout for error messages
+    const timeout = type === 'error' ? 5000 : duration;
+    setTimeout(() => status.remove(), timeout);
+}
+
+init();
+</script>
+
+</body>
+</html>

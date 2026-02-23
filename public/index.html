@@ -2,20 +2,26 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Video Call</title>
 <style>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
 }
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #0f172a;
     color: white;
-    height: 100vh;
     overflow: hidden;
 }
 
@@ -26,7 +32,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -35,15 +41,23 @@ body {
 
 .modal-content {
     background: #1e293b;
-    padding: 40px;
+    padding: 30px 20px;
     border-radius: 12px;
     text-align: center;
-    min-width: 300px;
+    min-width: 280px;
+    max-width: 90%;
 }
 
 .modal-content h2 {
     margin-bottom: 20px;
     color: #60a5fa;
+    font-size: 24px;
+}
+
+.modal-content p {
+    color: #94a3b8;
+    margin-bottom: 20px;
+    font-size: 14px;
 }
 
 .modal-content input {
@@ -75,45 +89,51 @@ body {
 
 /* Main Layout */
 .container {
-    display: grid;
-    grid-template-rows: 60px 1fr;
+    display: flex;
+    flex-direction: column;
     height: 100vh;
 }
 
 /* Top Bar */
 .topbar {
     background: #1e293b;
-    padding: 10px 20px;
+    padding: 10px 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 2px solid #334155;
+    flex-shrink: 0;
+    min-height: 50px;
 }
 
 .topbar-left {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
 }
 
 .topbar h1 {
-    font-size: 20px;
+    font-size: 18px;
     color: #60a5fa;
+    white-space: nowrap;
 }
 
 .topbar-right {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .btn {
-    padding: 8px 20px;
+    padding: 8px 12px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     transition: all 0.3s;
+    white-space: nowrap;
 }
 
 .btn-primary {
@@ -125,42 +145,133 @@ body {
     background: #1d4ed8;
 }
 
-.btn-success {
-    background: #10b981;
-    color: white;
-}
-
-.btn-success:hover {
-    background: #059669;
+#participantCount {
+    color: #94a3b8;
+    font-size: 13px;
+    white-space: nowrap;
 }
 
 /* Main Content */
 .main-content {
-    display: grid;
-    grid-template-columns: 1fr 350px;
-    height: calc(100vh - 60px);
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* Desktop Layout */
+@media (min-width: 1024px) {
+    .main-content {
+        flex-direction: row;
+    }
+    
+    #videosSection {
+        flex: 1;
+        overflow-y: auto;
+    }
+    
+    #videos {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+    
+    .chat-section {
+        width: 340px;
+    }
+}
+
+/* Tablet Layout */
+@media (max-width: 1023px) and (min-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    #videosSection {
+        flex: 1;
+        min-height: 0;
+    }
+    
+    #videos {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+    
+    .chat-section {
+        height: 200px;
+        border-left: none;
+        border-top: 2px solid #334155;
+    }
+}
+
+/* Mobile Layout */
+@media (max-width: 767px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    #videosSection {
+        flex: 0 0 auto;
+        padding: 10px;
+        max-height: 40vh;
+        overflow-y: auto;
+    }
+    
+    #videos {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+    }
+    
+    .video-container {
+        aspect-ratio: 16/10;
+    }
+    
+    .video-label {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    
+    .chat-section {
+        flex: 1;
+        min-height: 0;
+        border-left: none;
+        border-top: 2px solid #334155;
+    }
+    
+    .chat-header {
+        padding: 10px 15px;
+        font-size: 16px;
+    }
+    
+    .chat-input {
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .chat-input input,
+    .chat-input button {
+        padding: 10px;
+        font-size: 14px;
+    }
 }
 
 /* Video Section */
 #videosSection {
     background: #0f172a;
-    padding: 20px;
-    overflow-y: auto;
+    padding: 15px;
 }
 
 #videos {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
+    gap: 12px;
     height: 100%;
+    auto-flow: dense;
 }
 
 .video-container {
     position: relative;
     background: #000;
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 16/9;
+    width: 100%;
 }
 
 .video-container video {
@@ -171,13 +282,17 @@ body {
 
 .video-label {
     position: absolute;
-    bottom: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 5px 12px;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 4px 10px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Chat Section */
@@ -185,32 +300,35 @@ body {
     background: #1e293b;
     display: flex;
     flex-direction: column;
-    border-left: 2px solid #334155;
 }
 
 .chat-header {
-    padding: 15px 20px;
+    padding: 12px 15px;
     border-bottom: 2px solid #334155;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: #60a5fa;
+    flex-shrink: 0;
 }
 
 #messages {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
+    padding: 12px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .message {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -221,13 +339,15 @@ body {
 .message-user {
     font-weight: 600;
     color: #60a5fa;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .message-text {
     color: #e2e8f0;
-    margin-top: 3px;
+    margin-top: 2px;
     word-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 .message-time {
@@ -239,23 +359,25 @@ body {
 .system-message {
     text-align: center;
     color: #94a3b8;
-    font-size: 13px;
+    font-size: 12px;
     font-style: italic;
-    padding: 8px;
+    padding: 6px;
+    margin: 4px 0;
 }
 
 .chat-input {
-    padding: 15px;
+    padding: 12px;
     border-top: 2px solid #334155;
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .chat-input input {
     flex: 1;
-    padding: 12px;
+    padding: 10px;
     border: 2px solid #334155;
-    border-radius: 8px;
+    border-radius: 6px;
     background: #0f172a;
     color: white;
     font-size: 14px;
@@ -267,13 +389,15 @@ body {
 }
 
 .chat-input button {
-    padding: 12px 20px;
+    padding: 10px 16px;
     background: #2563eb;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     color: white;
     font-weight: 600;
     cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
 }
 
 .chat-input button:hover {
@@ -282,7 +406,7 @@ body {
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -291,16 +415,34 @@ body {
 
 ::-webkit-scrollbar-thumb {
     background: #334155;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #475569;
 }
 
-#participantCount {
-    color: #94a3b8;
+/* Status message */
+.status-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #ef4444;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    z-index: 999;
     font-size: 14px;
+    animation: slideIn 0.3s ease;
+}
+
+@media (max-width: 767px) {
+    .status-message {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
+    }
 }
 </style>
 </head>
@@ -309,8 +451,9 @@ body {
 <!-- Username Modal -->
 <div id="usernameModal">
     <div class="modal-content">
-        <h2>Welcome to Video Call</h2>
-        <input type="text" id="usernameInput" placeholder="Enter your username" maxlength="20" />
+        <h2>📹 Video Call</h2>
+        <p>Join a call with up to 8 people</p>
+        <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20" />
         <button onclick="submitUsername()">Join Call</button>
     </div>
 </div>
@@ -319,11 +462,11 @@ body {
 <div class="container" style="display: none;" id="mainApp">
     <div class="topbar">
         <div class="topbar-left">
-            <h1>📹 Video Call</h1>
-            <span id="participantCount">0 participants</span>
+            <h1>📹 Call</h1>
+            <span id="participantCount">0</span>
         </div>
         <div class="topbar-right">
-            <button class="btn btn-success" onclick="shareLink()">📤 Share Link</button>
+            <button class="btn btn-primary" onclick="shareLink()">📤 Share</button>
         </div>
     </div>
     
@@ -336,8 +479,8 @@ body {
             <div class="chat-header">💬 Chat</div>
             <div id="messages"></div>
             <div class="chat-input">
-                <input type="text" id="chatInput" placeholder="Type a message..." maxlength="500" />
-                <button onclick="sendMessage()">Send</button>
+                <input type="text" id="chatInput" placeholder="Type message..." maxlength="500" />
+                <button onclick="sendMessage()">📤</button>
             </div>
         </div>
     </div>
@@ -349,7 +492,9 @@ const socket = io();
 let localStream;
 let username;
 let roomId;
-const peers = {}; // Store peer connections
+const peers = {};
+let isMobile = false;
+
 const iceServers = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -357,16 +502,33 @@ const iceServers = {
     ]
 };
 
-// Initialize
+// Detect mobile
+function detectMobile() {
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+    return isMobile;
+}
+
+// Get video constraints based on device
+function getVideoConstraints() {
+    if (isMobile) {
+        return {
+            video: { width: { max: 320 }, height: { max: 240 } },
+            audio: true
+        };
+    }
+    return {
+        video: { width: { max: 640 }, height: { max: 480 } },
+        audio: true
+    };
+}
+
 function init() {
-    // Get or create room ID from URL
+    detectMobile();
     const urlParams = new URLSearchParams(window.location.search);
     roomId = urlParams.get('room') || generateRoomId();
-    
-    // Update URL without reloading
     window.history.replaceState({}, '', `?room=${roomId}`);
     
-    // Setup enter key for inputs
     document.getElementById('usernameInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') submitUsername();
     });
@@ -385,43 +547,38 @@ async function submitUsername() {
     username = input.value.trim();
     
     if (!username) {
-        alert('Please enter a username');
+        alert('Please enter your name');
         return;
     }
     
-    // Hide modal and show app
     document.getElementById('usernameModal').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    
-    // Start video call
+    document.getElementById('mainApp').style.display = 'flex';
     await startCall();
 }
 
 async function startCall() {
     try {
-        // Get user media
-        localStream = await navigator.mediaDevices.getUserMedia({ 
-            video: true, 
-            audio: true 
-        });
+        const constraints = getVideoConstraints();
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
         
-        // Add local video
         addVideoElement(socket.id, localStream, username + ' (You)');
-        
-        // Join room
         socket.emit('join-room', roomId, username);
-        
-        // Setup socket listeners
         setupSocketListeners();
         
     } catch (error) {
-        console.error('Error accessing media devices:', error);
-        alert('Please allow camera and microphone access to join the call');
+        console.error('Media error:', error);
+        showStatus('Camera/mic access required to join call');
     }
 }
 
 function setupSocketListeners() {
-    // When existing users are received
+    socket.on('room-full', (data) => {
+        showStatus(data.message);
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    });
+    
     socket.on('existing-users', (users) => {
         users.forEach(user => {
             createPeerConnection(user.socketId, true, user.username);
@@ -429,30 +586,31 @@ function setupSocketListeners() {
         updateParticipantCount(users.length + 1);
     });
     
-    // When a new user joins
     socket.on('user-joined', (user) => {
         createPeerConnection(user.socketId, false, user.username);
         updateParticipantCount(Object.keys(peers).length + 1);
     });
     
-    // Handle signaling
     socket.on('signal', async (data) => {
         const peer = peers[data.from];
         if (!peer) return;
         
-        if (data.signal.type === 'offer') {
-            await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
-            const answer = await peer.pc.createAnswer();
-            await peer.pc.setLocalDescription(answer);
-            socket.emit('signal', { to: data.from, signal: answer });
-        } else if (data.signal.type === 'answer') {
-            await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
-        } else if (data.signal.candidate) {
-            await peer.pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+        try {
+            if (data.signal.type === 'offer') {
+                await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+                const answer = await peer.pc.createAnswer();
+                await peer.pc.setLocalDescription(answer);
+                socket.emit('signal', { to: data.from, signal: answer });
+            } else if (data.signal.type === 'answer') {
+                await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+            } else if (data.signal.candidate) {
+                await peer.pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+            }
+        } catch (error) {
+            console.error('Signaling error:', error);
         }
     });
     
-    // When a user leaves
     socket.on('user-left', (socketId) => {
         if (peers[socketId]) {
             peers[socketId].pc.close();
@@ -462,7 +620,6 @@ function setupSocketListeners() {
         }
     });
     
-    // Chat messages
     socket.on('chat-message', (data) => {
         addChatMessage(data.username, data.message, data.timestamp);
     });
@@ -471,17 +628,14 @@ function setupSocketListeners() {
 function createPeerConnection(socketId, isInitiator, peerUsername) {
     const pc = new RTCPeerConnection(iceServers);
     
-    // Add local stream to peer connection
     localStream.getTracks().forEach(track => {
         pc.addTrack(track, localStream);
     });
     
-    // Handle incoming stream
     pc.ontrack = (event) => {
         addVideoElement(socketId, event.streams[0], peerUsername);
     };
     
-    // Handle ICE candidates
     pc.onicecandidate = (event) => {
         if (event.candidate) {
             socket.emit('signal', {
@@ -491,9 +645,12 @@ function createPeerConnection(socketId, isInitiator, peerUsername) {
         }
     };
     
+    pc.onerror = (error) => {
+        console.error('Peer connection error:', error);
+    };
+    
     peers[socketId] = { pc, username: peerUsername };
     
-    // If initiator, create offer
     if (isInitiator) {
         pc.createOffer().then(offer => {
             return pc.setLocalDescription(offer);
@@ -502,12 +659,11 @@ function createPeerConnection(socketId, isInitiator, peerUsername) {
                 to: socketId,
                 signal: pc.localDescription
             });
-        });
+        }).catch(console.error);
     }
 }
 
 function addVideoElement(id, stream, label) {
-    // Check if video already exists
     if (document.getElementById(`video-${id}`)) return;
     
     const container = document.createElement('div');
@@ -518,7 +674,7 @@ function addVideoElement(id, stream, label) {
     video.srcObject = stream;
     video.autoplay = true;
     video.playsInline = true;
-    if (id === socket.id) video.muted = true; // Mute local video
+    if (id === socket.id) video.muted = true;
     
     const labelDiv = document.createElement('div');
     labelDiv.className = 'video-label';
@@ -541,11 +697,10 @@ function updateParticipantCount(count) {
 function sendMessage() {
     const input = document.getElementById('chatInput');
     const message = input.value.trim();
-    
     if (!message) return;
-    
     socket.emit('chat-message', message);
     input.value = '';
+    input.focus();
 }
 
 function addChatMessage(user, message, timestamp) {
@@ -578,20 +733,33 @@ function addChatMessage(user, message, timestamp) {
         messagesDiv.appendChild(messageDiv);
     }
     
-    // Auto scroll to bottom
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    // Auto scroll
+    setTimeout(() => {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }, 10);
 }
 
 function shareLink() {
     const link = window.location.href;
-    navigator.clipboard.writeText(link).then(() => {
-        alert('Link copied to clipboard! Share it with your friends to join the call.');
-    }).catch(() => {
-        prompt('Copy this link to share:', link);
-    });
+    if (navigator.share) {
+        navigator.share({ title: 'Join my video call', url: link });
+    } else {
+        navigator.clipboard.writeText(link).then(() => {
+            showStatus('Link copied! 📋');
+        }).catch(() => {
+            prompt('Share this link:', link);
+        });
+    }
 }
 
-// Initialize app
+function showStatus(message) {
+    const status = document.createElement('div');
+    status.className = 'status-message';
+    status.textContent = message;
+    document.body.appendChild(status);
+    setTimeout(() => status.remove(), 3000);
+}
+
 init();
 </script>
 

@@ -15,12 +15,19 @@ io.on("connection", socket => {
     console.log("User connected:", socket.id);
 
     socket.on("join-room", (roomId, username) => {
-        socket.join(roomId);
-        
         // Initialize room if it doesn't exist
         if (!rooms[roomId]) {
             rooms[roomId] = {};
         }
+        
+        // Max 8 users per room limit
+        const currentUsers = Object.keys(rooms[roomId]).length;
+        if (currentUsers >= 8) {
+            socket.emit("room-full", { message: "This call is full (max 8 users). Try creating a new room." });
+            return;
+        }
+        
+        socket.join(roomId);
         
         // Store user info
         rooms[roomId][socket.id] = { username, socketId: socket.id };
@@ -39,7 +46,7 @@ io.on("connection", socket => {
         // Send join notification to chat
         io.to(roomId).emit("chat-message", {
             username: "System",
-            message: `${username} joined the room`,
+            message: `${username} joined the room (${Object.keys(rooms[roomId]).length} users)`,
             timestamp: Date.now()
         });
     });

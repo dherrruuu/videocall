@@ -841,6 +841,8 @@ async function submitUsername() {
         return;
     }
     
+    console.log('Username submitted:', username);
+    
     const button = document.getElementById('joinBtn');
     button.disabled = true;
     button.innerHTML = '<span class="loading-spinner"></span>Connecting...';
@@ -869,54 +871,67 @@ async function showPermissionInfo() {
 
 async function startCall(button) {
     try {
-        // First, try full video + audio
+        console.log('Starting call...');
+        
+        // Step 1: Try to get media (camera + audio)
         try {
             const constraints = getVideoConstraints();
+            console.log('Requesting media with constraints:', constraints);
             localStream = await navigator.mediaDevices.getUserMedia(constraints);
             console.log('✓ Got camera + audio');
         } catch (error) {
             console.warn('Camera failed, trying audio only...', error.name);
-            // Fallback to audio only
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 console.log('✓ Got audio only');
             } catch (audioError) {
-                console.warn('Audio also failed, joining chat-only...', audioError.name);
-                // Allow joining without media
+                console.warn('Audio failed too, allowing chat-only...', audioError.name);
                 localStream = null;
             }
         }
         
-        // Hide modal and show main app
+        console.log('localStream:', localStream ? 'has media' : 'chat-only');
+        
+        // Step 2: Show main app
         document.getElementById('usernameModal').style.display = 'none';
         document.getElementById('mainApp').style.display = 'flex';
+        console.log('✓ Main app visible');
         
-        // Add video element or placeholder
+        // Step 3: Add video or chat-only placeholder
         if (localStream) {
-            addVideoElement(socket.id, localStream, username + ' (You)');
+            const myId = socket.id || 'local-' + Date.now();
+            addVideoElement(myId, localStream, username + ' (You)');
+            console.log('✓ Added video element');
         } else {
             addPlaceholderElement(username + ' (Chat Only)');
+            console.log('✓ Added chat-only placeholder');
         }
         
-        // Join room
+        // Step 4: Emit join-room event
+        console.log('Joining room:', roomId);
         socket.emit('join-room', roomId, username);
+        
+        // Step 5: Setup socket listeners
         setupSocketListeners();
+        console.log('✓ Call started successfully');
         
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Fatal error in startCall:', error);
         if (button) {
             button.disabled = false;
             button.innerHTML = '🔄 Try Again';
-            showStatus('Unable to connect. Please try again.', 'error', 4000);
         }
+        showStatus('Connection failed: ' + error.message, 'error', 4000);
     }
 }
 
 // Add placeholder for users without camera
 function addPlaceholderElement(label) {
+    const myId = socket.id || 'local-' + Date.now();
+    
     const container = document.createElement('div');
     container.className = 'video-container placeholder';
-    container.id = `video-${socket.id}`;
+    container.id = `video-${myId}`;
     container.style.background = '#3c4043';
     container.style.display = 'flex';
     container.style.alignItems = 'center';

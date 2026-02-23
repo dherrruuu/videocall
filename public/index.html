@@ -843,12 +843,7 @@ async function submitUsername() {
     
     const button = document.getElementById('joinBtn');
     button.disabled = true;
-    button.innerHTML = '<span class="loading-spinner"></span>Requesting access...';
-    
-    // Show permission info for mobile
-    if (isMobile) {
-        await showPermissionInfo();
-    }
+    button.innerHTML = '<span class="loading-spinner"></span>Connecting...';
     
     await startCall(button);
 }
@@ -874,60 +869,100 @@ async function showPermissionInfo() {
 
 async function startCall(button) {
     try {
-        const constraints = getVideoConstraints();
-        
+        // First, try full video + audio
         try {
+            const constraints = getVideoConstraints();
             localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('✓ Got camera + audio');
         } catch (error) {
-            // If video fails on mobile, try audio only
-            if (isMobile && error.name !== 'NotAllowedError') {
-                console.warn('Video failed, trying audio only:', error.name);
+            console.warn('Camera failed, trying audio only...', error.name);
+            // Fallback to audio only
+            try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                showStatus('⚠️ Video disabled - audio only', 'warning', 4000);
-            } else {
-                throw error;
+                console.log('✓ Got audio only');
+            } catch (audioError) {
+                console.warn('Audio also failed, joining chat-only...', audioError.name);
+                // Allow joining without media
+                localStream = null;
             }
         }
         
+        // Hide modal and show main app
         document.getElementById('usernameModal').style.display = 'none';
         document.getElementById('mainApp').style.display = 'flex';
         
-        addVideoElement(socket.id, localStream, username + ' (You)');
+        // Add video element or placeholder
+        if (localStream) {
+            addVideoElement(socket.id, localStream, username + ' (You)');
+        } else {
+            addPlaceholderElement(username + ' (Chat Only)');
+        }
+        
+        // Join room
         socket.emit('join-room', roomId, username);
         setupSocketListeners();
         
     } catch (error) {
-        console.error('Media error:', error);
-        handlePermissionError(error, button);
+        console.error('Error:', error);
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '🔄 Try Again';
+            showStatus('Unable to connect. Please try again.', 'error', 4000);
+        }
     }
+}
+
+// Add placeholder for users without camera
+function addPlaceholderElement(label) {
+    const container = document.createElement('div');
+    container.className = 'video-container placeholder';
+    container.id = `video-${socket.id}`;
+    container.style.background = '#3c4043';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    
+    const content = document.createElement('div');
+    content.style.textAlign = 'center';
+    content.style.color = '#9aa0a6';
+    
+    const icon = document.createElement('div');
+    icon.textContent = '🎤';
+    icon.style.fontSize = '48px';
+    icon.style.marginBottom = '10px';
+    
+    const text = document.createElement('div');
+    text.textContent = 'Audio Only';
+    text.style.fontSize = '14px';
+    text.style.fontWeight = '500';
+    
+    content.appendChild(icon);
+    content.appendChild(text);
+    container.appendChild(content);
+    
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'video-label';
+    labelDiv.textContent = label;
+    container.appendChild(labelDiv);
+    
+    document.getElementById('videos').appendChild(container);
 }
 
 function handlePermissionError(error, button) {
     let message = '';
     
-    switch (error.name) {
-        case 'NotAllowedError':
-            message = '❌ Camera/microphone access denied.\n\nPlease enable permissions in browser settings and try again.';
-            break;
-        case 'NotFoundError':
-            message = '❌ No camera or microphone found on this device.';
-            break;
-        case 'NotReadableError':
-            message = '❌ Camera/microphone is already in use by another app.';
-            break;
-        case 'TypeError':
-            message = '❌ Secure connection required (HTTPS).';
-            break;
-        default:
-            message = `❌ Error: ${error.message || 'Unable to access camera/microphone'}`;
-    }
+    console.log('Error name:', error.name);
+    console.log('Error message:', error.message);
+    
+    message = `⚠️ Error: ${error.message || 'Failed to access camera/microphone'}\n\nYou can still use chat!`;
     
     if (button) {
         button.disabled = false;
         button.innerHTML = '🔄 Try Again';
     }
     
-    showStatus(message, 'error', 5000);
+    showStatus(message, 'warning', 5000);
+}
 }
 
 function setupSocketListeners() {

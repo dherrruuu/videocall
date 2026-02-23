@@ -554,12 +554,14 @@ function detectMobile() {
     return isMobile;
 }
 
-// Scroll to bottom of messages
+// Scroll to bottom of messages only
 function scrollMessagesToBottom() {
     const messagesDiv = document.getElementById('messages');
-    setTimeout(() => {
+    try {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }, 50);
+    } catch (e) {
+        // Silent fail
+    }
 }
 
 // Get video constraints based on device

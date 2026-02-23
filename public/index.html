@@ -37,6 +37,7 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    padding: 20px;
 }
 
 .modal-content {
@@ -46,6 +47,9 @@ body {
     text-align: center;
     min-width: 280px;
     max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal-content h2 {
@@ -58,6 +62,7 @@ body {
     color: #94a3b8;
     margin-bottom: 20px;
     font-size: 14px;
+    line-height: 1.5;
 }
 
 .modal-content input {
@@ -73,7 +78,7 @@ body {
 
 .modal-content button {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: #2563eb;
     border: none;
     border-radius: 8px;
@@ -81,10 +86,77 @@ body {
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.3s;
 }
 
 .modal-content button:hover {
     background: #1d4ed8;
+}
+
+.modal-content button:disabled {
+    background: #64748b;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(96, 165, 250, 0.3);
+    border-radius: 50%;
+    border-top-color: #60a5fa;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.permission-info {
+    background: #334155;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+
+.permission-info strong {
+    display: block;
+    color: #f1f5f9;
+    margin-bottom: 6px;
+}
+
+@media (max-width: 767px) {
+    .modal-content {
+        padding: 20px 15px;
+        min-width: 85%;
+    }
+    
+    .modal-content h2 {
+        font-size: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .modal-content p {
+        font-size: 13px;
+    }
+    
+    .modal-content input {
+        padding: 14px;
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+    
+    .modal-content button {
+        padding: 16px;
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
 }
 
 /* Main Layout */
@@ -472,21 +544,37 @@ body {
     position: fixed;
     bottom: 20px;
     right: 20px;
+    left: auto;
     background: #ef4444;
     color: white;
-    padding: 12px 16px;
+    padding: 14px 18px;
     border-radius: 8px;
     z-index: 999;
     font-size: 14px;
     animation: slideIn 0.3s ease;
+    max-width: 400px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.status-message.warning {
+    background: #f59e0b;
+}
+
+.status-message.info {
+    background: #3b82f6;
 }
 
 @media (max-width: 767px) {
     .status-message {
-        bottom: 10px;
+        bottom: 15px;
         right: 10px;
         left: 10px;
         text-align: center;
+        max-width: none;
+        font-size: 14px;
+        padding: 16px 14px;
     }
 }
 </style>
@@ -499,7 +587,7 @@ body {
         <h2>📹 Video Call</h2>
         <p>Join a call with up to 8 people</p>
         <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="20" />
-        <button onclick="submitUsername()">Join Call</button>
+        <button id="joinBtn" onclick="submitUsername(event)">Join Call</button>
     </div>
 </div>
 
@@ -606,15 +694,56 @@ async function submitUsername() {
         return;
     }
     
-    document.getElementById('usernameModal').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'flex';
-    await startCall();
+    const button = document.getElementById('joinBtn');
+    button.disabled = true;
+    button.innerHTML = '<span class="loading-spinner"></span>Requesting access...';
+    
+    // Show permission info for mobile
+    if (isMobile) {
+        await showPermissionInfo();
+    }
+    
+    await startCall(button);
 }
 
-async function startCall() {
+async function showPermissionInfo() {
+    const modal = document.getElementById('usernameModal');
+    
+    // Check if permission info already shown
+    if (modal.querySelector('.permission-info')) {
+        return;
+    }
+    
+    const permInfo = document.createElement('div');
+    permInfo.className = 'permission-info';
+    permInfo.innerHTML = `
+        <strong>📱 Permission Request</strong>
+        Allow camera & microphone access when the browser asks
+    `;
+    
+    const input = document.getElementById('usernameInput');
+    input.parentNode.insertBefore(permInfo, input.nextSibling);
+}
+
+async function startCall(button) {
     try {
         const constraints = getVideoConstraints();
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (error) {
+            // If video fails on mobile, try audio only
+            if (isMobile && error.name !== 'NotAllowedError') {
+                console.warn('Video failed, trying audio only:', error.name);
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                showStatus('⚠️ Video disabled - audio only', 'warning', 4000);
+            } else {
+                throw error;
+            }
+        }
+        
+        document.getElementById('usernameModal').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
         
         addVideoElement(socket.id, localStream, username + ' (You)');
         socket.emit('join-room', roomId, username);
@@ -622,8 +751,36 @@ async function startCall() {
         
     } catch (error) {
         console.error('Media error:', error);
-        showStatus('Camera/mic access required to join call');
+        handlePermissionError(error, button);
     }
+}
+
+function handlePermissionError(error, button) {
+    let message = '';
+    
+    switch (error.name) {
+        case 'NotAllowedError':
+            message = '❌ Camera/microphone access denied.\n\nPlease enable permissions in browser settings and try again.';
+            break;
+        case 'NotFoundError':
+            message = '❌ No camera or microphone found on this device.';
+            break;
+        case 'NotReadableError':
+            message = '❌ Camera/microphone is already in use by another app.';
+            break;
+        case 'TypeError':
+            message = '❌ Secure connection required (HTTPS).';
+            break;
+        default:
+            message = `❌ Error: ${error.message || 'Unable to access camera/microphone'}`;
+    }
+    
+    if (button) {
+        button.disabled = false;
+        button.innerHTML = '🔄 Try Again';
+    }
+    
+    showStatus(message, 'error', 5000);
 }
 
 function setupSocketListeners() {
@@ -810,12 +967,22 @@ function shareLink() {
     }
 }
 
-function showStatus(message) {
+function showStatus(message, type = 'error', duration = 3000) {
     const status = document.createElement('div');
-    status.className = 'status-message';
-    status.textContent = message;
+    status.className = `status-message ${type}`;
+    
+    // Handle multi-line messages
+    if (message.includes('\n')) {
+        status.innerHTML = message.split('\n').join('<br>');
+    } else {
+        status.textContent = message;
+    }
+    
     document.body.appendChild(status);
-    setTimeout(() => status.remove(), 3000);
+    
+    // Longer timeout for error messages
+    const timeout = type === 'error' ? 5000 : duration;
+    setTimeout(() => status.remove(), timeout);
 }
 
 init();

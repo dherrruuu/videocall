@@ -210,22 +210,24 @@ body {
     #videosSection {
         flex: 0 0 auto;
         padding: 10px;
-        max-height: 40vh;
+        max-height: 35vh;
         overflow-y: auto;
+        overflow-x: hidden;
     }
     
     #videos {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
     }
     
     .video-container {
-        aspect-ratio: 16/10;
+        aspect-ratio: 4/3;
+        min-height: 100px;
     }
     
     .video-label {
-        font-size: 11px;
-        padding: 3px 8px;
+        font-size: 10px;
+        padding: 2px 6px;
     }
     
     .chat-section {
@@ -233,22 +235,64 @@ body {
         min-height: 0;
         border-left: none;
         border-top: 2px solid #334155;
+        display: flex;
+        flex-direction: column;
+        -webkit-user-select: none;
+        user-select: text;
     }
     
     .chat-header {
         padding: 10px 15px;
-        font-size: 16px;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+    
+    #messages {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px;
+        gap: 2px;
+    }
+    
+    .message {
+        margin-bottom: 8px;
+    }
+    
+    .message-text {
+        font-size: 13px;
     }
     
     .chat-input {
-        padding: 10px;
-        gap: 8px;
+        padding: 8px;
+        gap: 6px;
+        flex-shrink: 0;
+        background: #1e293b;
     }
     
-    .chat-input input,
+    .chat-input input {
+        padding: 12px 10px;
+        font-size: 16px;
+        min-height: 44px;
+    }
+    
     .chat-input button {
-        padding: 10px;
+        padding: 12px 14px;
+        font-size: 16px;
+        min-height: 44px;
+        min-width: 44px;
+        flex-shrink: 0;
+    }
+    
+    .topbar {
+        padding: 10px 12px;
+        min-height: 48px;
+    }
+    
+    .btn {
+        padding: 10px 14px;
         font-size: 14px;
+        min-height: 40px;
     }
 }
 
@@ -381,6 +425,7 @@ body {
     background: #0f172a;
     color: white;
     font-size: 14px;
+    font-size: 16px;  /* Prevents auto-zoom on iOS */
 }
 
 .chat-input input:focus {
@@ -507,6 +552,14 @@ function detectMobile() {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
     return isMobile;
+}
+
+// Scroll to bottom of messages
+function scrollMessagesToBottom() {
+    const messagesDiv = document.getElementById('messages');
+    setTimeout(() => {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }, 50);
 }
 
 // Get video constraints based on device
@@ -706,6 +759,9 @@ function sendMessage() {
 function addChatMessage(user, message, timestamp) {
     const messagesDiv = document.getElementById('messages');
     
+    // Check if user is scrolled near bottom before adding message
+    const isScrolledNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
+    
     if (user === 'System') {
         const systemMsg = document.createElement('div');
         systemMsg.className = 'system-message';
@@ -733,10 +789,10 @@ function addChatMessage(user, message, timestamp) {
         messagesDiv.appendChild(messageDiv);
     }
     
-    // Auto scroll
-    setTimeout(() => {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }, 10);
+    // Auto scroll to bottom if user was already viewing recent messages
+    if (isScrolledNearBottom) {
+        scrollMessagesToBottom();
+    }
 }
 
 function shareLink() {

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Call</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0f172a;
+    color: white;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Username Modal */
+#usernameModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 300px;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: #60a5fa;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    background: #0f172a;
+    color: white;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.modal-content button {
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-content button:hover {
+    background: #1d4ed8;
+}
+
+/* Main Layout */
+.container {
+    display: grid;
+    grid-template-rows: 60px 1fr;
+    height: 100vh;
+}
+
+/* Top Bar */
+.topbar {
+    background: #1e293b;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #334155;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.topbar h1 {
+    font-size: 20px;
+    color: #60a5fa;
+}
+
+.topbar-right {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+/* Main Content */
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    height: calc(100vh - 60px);
+}
+
+/* Video Section */
+#videosSection {
+    background: #0f172a;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#videos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    height: 100%;
+}
+
+.video-container {
+    position: relative;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Chat Section */
+.chat-section {
+    background: #1e293b;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #334155;
+}
+
+.chat-header {
+    padding: 15px 20px;
+    border-bottom: 2px solid #334155;
+    font-size: 18px;
+    font-weight: 600;
+    color: #60a5fa;
+}
+
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.message {
+    margin-bottom: 12px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-user {
+    font-weight: 600;
+    color: #60a5fa;
+    font-size: 13px;
+}
+
+.message-text {
+    color: #e2e8f0;
+    margin-top: 3px;
+    word-wrap: break-word;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.system-message {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13px;
+    font-style: italic;
+    padding: 8px;
+}
+
+.chat-input {
+    padding: 15px;
+    border-top: 2px solid #334155;
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    background: #0f172a;
+    color: white;
+    font-size: 14px;
+}
+
+.chat-input input:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.chat-input button {
+    padding: 12px 20px;
+    background: #2563eb;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.chat-input button:hover {
+    background: #1d4ed8;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+#participantCount {
+    color: #94a3b8;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- Username Modal -->
+<div id="usernameModal">
+    <div class="modal-content">
+        <h2>Welcome to Video Call</h2>
+        <input type="text" id="usernameInput" placeholder="Enter your username" maxlength="20" />
+        <button onclick="submitUsername()">Join Call</button>
+    </div>
+</div>
+
+<!-- Main App -->
+<div class="container" style="display: none;" id="mainApp">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>📹 Video Call</h1>
+            <span id="participantCount">0 participants</span>
+        </div>
+        <div class="topbar-right">
+            <button class="btn btn-success" onclick="shareLink()">📤 Share Link</button>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div id="videosSection">
+            <div id="videos"></div>
+        </div>
+        
+        <div class="chat-section">
+            <div class="chat-header">💬 Chat</div>
+            <div id="messages"></div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Type a message..." maxlength="500" />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let localStream;
+let username;
+let roomId;
+const peers = {}; // Store peer connections
+const iceServers = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+    ]
+};
+
+// Initialize
+function init() {
+    // Get or create room ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    roomId = urlParams.get('room') || generateRoomId();
+    
+    // Update URL without reloading
+    window.history.replaceState({}, '', `?room=${roomId}`);
+    
+    // Setup enter key for inputs
+    document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitUsername();
+    });
+    
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+}
+
+function generateRoomId() {
+    return Math.random().toString(36).substring(2, 10);
+}
+
+async function submitUsername() {
+    const input = document.getElementById('usernameInput');
+    username = input.value.trim();
+    
+    if (!username) {
+        alert('Please enter a username');
+        return;
+    }
+    
+    // Hide modal and show app
+    document.getElementById('usernameModal').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    
+    // Start video call
+    await startCall();
+}
+
+async function startCall() {
+    try {
+        // Get user media
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+            video: true, 
+            audio: true 
+        });
+        
+        // Add local video
+        addVideoElement(socket.id, localStream, username + ' (You)');
+        
+        // Join room
+        socket.emit('join-room', roomId, username);
+        
+        // Setup socket listeners
+        setupSocketListeners();
+        
+    } catch (error) {
+        console.error('Error accessing media devices:', error);
+        alert('Please allow camera and microphone access to join the call');
+    }
+}
+
+function setupSocketListeners() {
+    // When existing users are received
+    socket.on('existing-users', (users) => {
+        users.forEach(user => {
+            createPeerConnection(user.socketId, true, user.username);
+        });
+        updateParticipantCount(users.length + 1);
+    });
+    
+    // When a new user joins
+    socket.on('user-joined', (user) => {
+        createPeerConnection(user.socketId, false, user.username);
+        updateParticipantCount(Object.keys(peers).length + 1);
+    });
+    
+    // Handle signaling
+    socket.on('signal', async (data) => {
+        const peer = peers[data.from];
+        if (!peer) return;
+        
+        if (data.signal.type === 'offer') {
+            await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+            const answer = await peer.pc.createAnswer();
+            await peer.pc.setLocalDescription(answer);
+            socket.emit('signal', { to: data.from, signal: answer });
+        } else if (data.signal.type === 'answer') {
+            await peer.pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+        } else if (data.signal.candidate) {
+            await peer.pc.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+        }
+    });
+    
+    // When a user leaves
+    socket.on('user-left', (socketId) => {
+        if (peers[socketId]) {
+            peers[socketId].pc.close();
+            removeVideoElement(socketId);
+            delete peers[socketId];
+            updateParticipantCount(Object.keys(peers).length + 1);
+        }
+    });
+    
+    // Chat messages
+    socket.on('chat-message', (data) => {
+        addChatMessage(data.username, data.message, data.timestamp);
+    });
+}
+
+function createPeerConnection(socketId, isInitiator, peerUsername) {
+    const pc = new RTCPeerConnection(iceServers);
+    
+    // Add local stream to peer connection
+    localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+    });
+    
+    // Handle incoming stream
+    pc.ontrack = (event) => {
+        addVideoElement(socketId, event.streams[0], peerUsername);
+    };
+    
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit('signal', {
+                to: socketId,
+                signal: { candidate: event.candidate }
+            });
+        }
+    };
+    
+    peers[socketId] = { pc, username: peerUsername };
+    
+    // If initiator, create offer
+    if (isInitiator) {
+        pc.createOffer().then(offer => {
+            return pc.setLocalDescription(offer);
+        }).then(() => {
+            socket.emit('signal', {
+                to: socketId,
+                signal: pc.localDescription
+            });
+        });
+    }
+}
+
+function addVideoElement(id, stream, label) {
+    // Check if video already exists
+    if (document.getElementById(`video-${id}`)) return;
+    
+    const container = document.createElement('div');
+    container.className = 'video-container';
+    container.id = `video-${id}`;
+    
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
+    if (id === socket.id) video.muted = true; // Mute local video
+    
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'video-label';
+    labelDiv.textContent = label;
+    
+    container.appendChild(video);
+    container.appendChild(labelDiv);
+    document.getElementById('videos').appendChild(container);
+}
+
+function removeVideoElement(id) {
+    const element = document.getElementById(`video-${id}`);
+    if (element) element.remove();
+}
+
+function updateParticipantCount(count) {
+    document.getElementById('participantCount').textContent = `${count} participant${count !== 1 ? 's' : ''}`;
+}
+
+function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    socket.emit('chat-message', message);
+    input.value = '';
+}
+
+function addChatMessage(user, message, timestamp) {
+    const messagesDiv = document.getElementById('messages');
+    
+    if (user === 'System') {
+        const systemMsg = document.createElement('div');
+        systemMsg.className = 'system-message';
+        systemMsg.textContent = message;
+        messagesDiv.appendChild(systemMsg);
+    } else {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        
+        const userDiv = document.createElement('div');
+        userDiv.className = 'message-user';
+        userDiv.textContent = user;
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        textDiv.textContent = message;
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
+        
+        messageDiv.appendChild(userDiv);
+        messageDiv.appendChild(textDiv);
+        messageDiv.appendChild(timeDiv);
+        messagesDiv.appendChild(messageDiv);
+    }
+    
+    // Auto scroll to bottom
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function shareLink() {
+    const link = window.location.href;
+    navigator.clipboard.writeText(link).then(() => {
+        alert('Link copied to clipboard! Share it with your friends to join the call.');
+    }).catch(() => {
+        prompt('Copy this link to share:', link);
+    });
+}
+
+// Initialize app
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "hackathon-call",
+  "version": "1.0.0",
+  "description": "Multi-user video call application with real-time chat",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["video-call", "webrtc", "socket.io", "chat"],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}

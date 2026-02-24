@@ -869,59 +869,51 @@
                 return;
             }
 
+            // Start with the simplest constraints (best for mobile)
             try {
-                // Try with mobile-friendly constraints first
-                console.log('Requesting camera and microphone...');
+                console.log('Requesting camera and microphone (simple)...');
                 state.localStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    },
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
+                    video: true,
+                    audio: true
                 });
-                console.log('Camera and mic access granted');
+                console.log('✓ Camera and mic access granted');
                 addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
             } catch (error) {
-                console.error('Media error:', error.name, error.message);
+                console.error('Simple media error:', error.name, error.message);
                 
-                // Handle specific errors
+                // Handle permission denial
                 if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
                     addPlaceholder(state.username + ' (You - Chat only)');
                     showNotification('Camera/mic permission denied. Please allow access.', 'error');
                     return;
                 }
                 
-                // Try with basic video constraints
+                // Try video only
                 try {
-                    console.log('Trying basic constraints...');
+                    console.log('Trying video only...');
                     state.localStream = await navigator.mediaDevices.getUserMedia({
-                        video: true,
-                        audio: true
+                        video: true
                     });
-                    console.log('Basic camera access granted');
+                    console.log('✓ Video only access granted');
                     addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
+                    showNotification('Video only - no microphone', 'error');
                 } catch (error2) {
-                    console.error('Basic video error:', error2.name, error2.message);
+                    console.error('Video only error:', error2.name, error2.message);
                     
-                    // Fallback to audio only
+                    // Try audio only as last resort
                     try {
                         console.log('Trying audio only...');
                         state.localStream = await navigator.mediaDevices.getUserMedia({ 
                             audio: true 
                         });
-                        console.log('Audio access granted');
+                        console.log('✓ Audio only access granted');
                         addPlaceholder(state.username + ' (You)');
                         showNotification('Audio only - camera not available', 'error');
                     } catch (e) {
                         console.error('Audio error:', e.name, e.message);
                         addPlaceholder(state.username + ' (You - Chat only)');
-                        if (e.name === 'NotAllowedError') {
-                            showNotification('Microphone permission denied', 'error');
+                        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                            showNotification('All permissions denied', 'error');
                         } else {
                             showNotification('No camera/mic available', 'error');
                         }

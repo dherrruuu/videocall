@@ -849,75 +849,65 @@
 
         // MEDIA
         async function getMedia() {
+            console.log('getMedia called - Protocol:', window.location.protocol, 'Host:', window.location.hostname);
+            
             // Check if getUserMedia is supported
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                console.error('getUserMedia not supported');
+                console.error('getUserMedia API not supported');
                 addPlaceholder(state.username + ' (You - Chat only)');
                 showNotification('Browser does not support camera/mic', 'error');
                 return;
             }
 
-            // Check if site is served over HTTPS or localhost
-            const isSecure = window.location.protocol === 'https:' || 
-                           window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1';
-            
-            if (!isSecure) {
-                console.warn('Not secure context - camera may not work');
-                addPlaceholder(state.username + ' (You - Chat only)');
-                showNotification('⚠️ Camera requires HTTPS', 'error');
-                return;
-            }
-
-            // Start with the simplest constraints (best for mobile)
             try {
-                console.log('Requesting camera and microphone (simple)...');
+                console.log('🎥 Requesting camera and mic access...');
+                console.log('Please ALLOW camera and microphone when prompted!');
+                
                 state.localStream = await navigator.mediaDevices.getUserMedia({
                     video: true,
                     audio: true
                 });
-                console.log('✓ Camera and mic access granted');
-                addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
-            } catch (error) {
-                console.error('Simple media error:', error.name, error.message);
                 
-                // Handle permission denial
+                console.log('✅ SUCCESS! Camera and mic granted');
+                console.log('Stream tracks:', state.localStream.getTracks().map(t => t.kind + ':' + t.label));
+                addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
+                
+            } catch (error) {
+                console.error('❌ Media request failed:', error.name, '-', error.message);
+                console.error('Full error:', error);
+                
                 if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    console.log('⚠️ User denied permission or browser blocked access');
                     addPlaceholder(state.username + ' (You - Chat only)');
-                    showNotification('Camera/mic permission denied. Please allow access.', 'error');
+                    showNotification('⚠️ Please go to browser settings and allow camera/mic access for this site', 'error');
                     return;
                 }
                 
-                // Try video only
+                if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    console.log('⚠️ No camera or mic found on device');
+                    addPlaceholder(state.username + ' (You - Chat only)');
+                    showNotification('No camera/microphone found on this device', 'error');
+                    return;
+                }
+                
+                if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    console.log('⚠️ Camera/mic is being used by another app');
+                    addPlaceholder(state.username + ' (You - Chat only)');
+                    showNotification('Camera/mic is in use by another app', 'error');
+                    return;
+                }
+                
+                // Try audio only
                 try {
-                    console.log('Trying video only...');
-                    state.localStream = await navigator.mediaDevices.getUserMedia({
-                        video: true
-                    });
-                    console.log('✓ Video only access granted');
-                    addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
-                    showNotification('Video only - no microphone', 'error');
-                } catch (error2) {
-                    console.error('Video only error:', error2.name, error2.message);
-                    
-                    // Try audio only as last resort
-                    try {
-                        console.log('Trying audio only...');
-                        state.localStream = await navigator.mediaDevices.getUserMedia({ 
-                            audio: true 
-                        });
-                        console.log('✓ Audio only access granted');
-                        addPlaceholder(state.username + ' (You)');
-                        showNotification('Audio only - camera not available', 'error');
-                    } catch (e) {
-                        console.error('Audio error:', e.name, e.message);
-                        addPlaceholder(state.username + ' (You - Chat only)');
-                        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                            showNotification('All permissions denied', 'error');
-                        } else {
-                            showNotification('No camera/mic available', 'error');
-                        }
-                    }
+                    console.log('🎤 Trying audio only...');
+                    state.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    console.log('✅ Audio access granted');
+                    addPlaceholder(state.username + ' (You)');
+                    showNotification('Audio only mode', 'error');
+                } catch (audioError) {
+                    console.error('❌ Audio also failed:', audioError.name);
+                    addPlaceholder(state.username + ' (You - Chat only)');
+                    showNotification(error.message || 'No camera/mic access', 'error');
                 }
             }
         }

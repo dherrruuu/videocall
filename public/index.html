@@ -913,6 +913,10 @@
         }
 
         function addVideoElement(id, stream, label) {
+            console.log('📺 Adding video element for:', id, label);
+            console.log('   Stream active:', stream.active);
+            console.log('   Stream tracks:', stream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
+            
             let container = document.getElementById(`video-${id}`);
             if (!container) {
                 container = document.createElement('div');
@@ -925,7 +929,19 @@
             video.srcObject = stream;
             video.autoplay = true;
             video.playsInline = true;
-            if (id === state.socket.id) video.muted = true;
+            video.muted = (id === state.socket.id);
+            
+            // Force play on mobile devices
+            video.onloadedmetadata = () => {
+                console.log('✓ Video metadata loaded for:', label);
+                video.play().catch(err => {
+                    console.error('Error playing video:', label, err);
+                    // Try again with a slight delay
+                    setTimeout(() => {
+                        video.play().catch(e => console.error('Retry play failed:', e));
+                    }, 100);
+                });
+            };
 
             container.innerHTML = '';
             container.appendChild(video);
@@ -935,6 +951,7 @@
             labelDiv.textContent = label;
             container.appendChild(labelDiv);
 
+            console.log('✅ Video element added successfully for:', label);
             applyResponsiveScaling();
         }
 
@@ -1002,28 +1019,45 @@
         };
 
         // CREATE PEER CONNECTION
-        async function createPeerConnection(peerId) {
+        async function createPeerConnection(peerId, username = null) {
             if (state.peers[peerId]) return state.peers[peerId].pc;
 
+            console.log('Creating peer connection for:', peerId, username || 'Unknown');
             const peerConnection = new RTCPeerConnection(rtcConfig);
             state.peers[peerId] = {
                 pc: peerConnection,
-                stream: null
+                stream: null,
+                username: username || `User ${peerId.substring(0, 5)}`
             };
 
             // Add local stream tracks
             if (state.localStream) {
+                console.log('Adding local tracks to peer connection:', peerId);
                 state.localStream.getTracks().forEach(track => {
+                    console.log('  Adding track:', track.kind, track.label);
                     peerConnection.addTrack(track, state.localStream);
                 });
+            } else {
+                console.warn('No local stream available when creating peer connection');
             }
 
             // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('Remote track received:', event.track.kind);
-                if (event.streams.length > 0) {
-                    state.peers[peerId].stream = event.streams[0];
-                    addVideoElement(peerId, event.streams[0], `Peer ${peerId.substring(0, 5)}`);
+                console.log('🎬 Remote track received from', peerId, '- Type:', event.track.kind);
+                console.log('   Track label:', event.track.label);
+                console.log('   Streams:', event.streams.length);
+                
+                if (event.streams && event.streams.length > 0) {
+                    const remoteStream = event.streams[0];
+                    console.log('   Stream ID:', remoteStream.id);
+                    console.log('   Stream tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.label));
+                    
+                    state.peers[peerId].stream = remoteStream;
+                    const displayName = state.peers[peerId].username || `Peer ${peerId.substring(0, 5)}`;
+                    console.log('✅ Displaying remote video for:', displayName);
+                    addVideoElement(peerId, remoteStream, displayName);
+                } else {
+                    console.warn('No streams in track event for peer:', peerId);
                 }
             };
 
@@ -1038,46 +1072,61 @@
             };
 
             peerConnection.onconnectionstatechange = () => {
-                console.log('Connection state:', peerConnection.connectionState);
+                console.log('Connection state for', peerId, ':', peerConnection.connectionState);
+                if (peerConnection.connectionState === 'failed') {
+                    console.error('❌ Connection failed for peer:', peerId);
+                }
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                console.log('ICE connection state for', peerId, ':', peerConnection.iceConnectionState);
             };
 
             return peerConnection;
         }
 
         // SEND OFFER
-        async function sendOffer(peerId) {
+        async function sendOffer(peerId, username = null) {
             try {
-                const peerConnection = await createPeerConnection(peerId);
+                console.log('📤 Sending offer to:', peerId, username || 'Unknown');
+                const peerConnection = await createPeerConnection(peerId, username);
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
+                console.log('   Offer created and set as local description');
                 state.socket.emit('send-offer', {
                     to: peerId,
                     offer: offer
                 });
+                console.log('✓ Offer sent successfully');
             } catch (error) {
-                console.error('Error sending offer:', error);
+                console.error('❌ Error sending offer:', error);
             }
         }
 
         // SEND ANSWER
         async function sendAnswer(peerId, offer) {
             try {
+                console.log('📥 Received offer from:', peerId);
+                console.log('   Creating answer...');
                 let peerConnection = state.peers[peerId];
-                if (!peerConnection) {
+                if (!peerConnection || !peerConnection.pc) {
                     peerConnection = await createPeerConnection(peerId);
                 } else {
                     peerConnection = peerConnection.pc;
                 }
 
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                console.log('   Remote description set');
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
+                console.log('   Answer created and set as local description');
                 state.socket.emit('send-answer', {
                     to: peerId,
                     answer: answer
                 });
+                console.log('✓ Answer sent successfully');
             } catch (error) {
-                console.error('Error sending answer:', error);
+                console.error('❌ Error sending answer:', error);
             }
         }
 
@@ -1109,20 +1158,30 @@
             console.log('Setting up socket listeners');
 
             state.socket.on('existing-users', (users) => {
-                console.log('Existing users:', users);
+                console.log('📋 Existing users in room:', users);
                 // Send offer to all existing participants
                 users.forEach(user => {
+                    console.log('  Will send offer to:', user.username || user.id);
+                    // Store username if available
+                    if (!state.peers[user.id]) {
+                        state.peers[user.id] = { username: user.username || 'Unknown' };
+                    }
                     setTimeout(() => {
-                        sendOffer(user.id);
+                        sendOffer(user.id, user.username);
                     }, 300);
                 });
             });
 
             state.socket.on('user-joined', (user) => {
+                console.log('👤 User joined:', user.username, user.id);
                 addMessage('System', `${user.username} joined`);
+                // Store username
+                if (!state.peers[user.id]) {
+                    state.peers[user.id] = { username: user.username };
+                }
                 // Send offer to new user
                 setTimeout(() => {
-                    sendOffer(user.id);
+                    sendOffer(user.id, user.username);
                 }, 500);
                 updateParticipantCount();
             });
@@ -1154,33 +1213,56 @@
             });
 
             state.socket.on('receive-answer', async (data) => {
-                console.log('Received answer from:', data.from);
+                console.log('📬 Received answer from:', data.from);
                 if (state.peers[data.from]) {
-                    await state.peers[data.from].pc.setRemoteDescription(
-                        new RTCSessionDescription(data.answer)
-                    );
+                    const pc = state.peers[data.from].pc || state.peers[data.from];
+                    if (pc && pc.setRemoteDescription) {
+                        await pc.setRemoteDescription(
+                            new RTCSessionDescription(data.answer)
+                        );
+                        console.log('✓ Answer applied to peer connection');
+                    } else {
+                        console.error('❌ Invalid peer connection object for:', data.from);
+                    }
+                } else {
+                    console.error('❌ No peer connection found for:', data.from);
                 }
             });
 
             state.socket.on('receive-ice', async (data) => {
-                console.log('Received ICE from:', data.from);
+                console.log('🧊 Received ICE candidate from:', data.from);
                 if (state.peers[data.from]) {
-                    try {
-                        await state.peers[data.from].pc.addIceCandidate(
-                            new RTCIceCandidate(data.candidate)
-                        );
-                    } catch (error) {
-                        console.error('Error adding ICE candidate:', error);
+                    const pc = state.peers[data.from].pc || state.peers[data.from];
+                    if (pc && pc.addIceCandidate) {
+                        try {
+                            await pc.addIceCandidate(
+                                new RTCIceCandidate(data.candidate)
+                            );
+                            console.log('  ✓ ICE candidate added');
+                        } catch (error) {
+                            console.error('  ❌ Error adding ICE candidate:', error);
+                        }
+                    } else {
+                        console.error('❌ Invalid peer connection for ICE candidate');
                     }
+                } else {
+                    console.warn('⚠️ Received ICE for unknown peer:', data.from);
                 }
             });
 
             state.socket.on('peer-disconnected', (peerId) => {
+                console.log('👋 Peer disconnected:', peerId);
                 if (state.peers[peerId]) {
-                    state.peers[peerId].pc.close();
+                    const pc = state.peers[peerId].pc || state.peers[peerId];
+                    if (pc && pc.close) {
+                        pc.close();
+                    }
                     delete state.peers[peerId];
                     const videoContainer = document.getElementById(`video-${peerId}`);
-                    if (videoContainer) videoContainer.remove();
+                    if (videoContainer) {
+                        videoContainer.remove();
+                        console.log('  ✓ Video element removed');
+                    }
                     updateParticipantCount();
                 }
             });

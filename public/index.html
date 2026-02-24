@@ -849,25 +849,51 @@
 
         // MEDIA
         async function getMedia() {
-            try {
-                const constraints = {
-                    video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: 'user'
-                    },
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true
-                    }
-                };
-
-                state.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
-            } catch (error) {
-                console.error('Media error:', error);
-                showNotification('Camera/mic access denied', 'error');
+            // Check if on mobile and using HTTP (not localhost)
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isHTTP = window.location.protocol === 'http:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            if (isMobile && isHTTP && !isLocalhost) {
+                showNotification('⚠️ Mobile requires HTTPS for camera access. Use your Render deployment URL.', 'error');
                 addPlaceholder(state.username + ' (You)');
+                return;
+            }
+
+            // Try different constraint levels for maximum mobile compatibility
+            const constraintLevels = [
+                // Level 1: Simple constraints (most compatible)
+                { video: true, audio: true },
+                
+                // Level 2: Basic mobile constraints
+                {
+                    video: { facingMode: 'user' },
+                    audio: true
+                },
+                
+                // Level 3: Video only
+                { video: true, audio: false },
+                
+                // Level 4: Audio only
+                { video: false, audio: true }
+            ];
+
+            for (let i = 0; i < constraintLevels.length; i++) {
+                try {
+                    console.log(`Attempt ${i + 1}: Requesting media...`);
+                    state.localStream = await navigator.mediaDevices.getUserMedia(constraintLevels[i]);
+                    console.log('Success! Stream tracks:', state.localStream.getTracks().map(t => t.kind));
+                    addVideoElement(state.socket.id, state.localStream, state.username + ' (You)');
+                    return;
+                } catch (error) {
+                    console.log(`Attempt ${i + 1} failed:`, error.name);
+                    if (i === constraintLevels.length - 1) {
+                        // All attempts failed
+                        console.error('All media attempts failed:', error);
+                        showNotification('Cannot access camera/mic. Please check browser permissions.', 'error');
+                        addPlaceholder(state.username + ' (You)');
+                    }
+                }
             }
         }
 

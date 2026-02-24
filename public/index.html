@@ -1020,15 +1020,20 @@
 
         // CREATE PEER CONNECTION
         async function createPeerConnection(peerId, username = null) {
-            if (state.peers[peerId]) return state.peers[peerId].pc;
+            if (state.peers[peerId] && state.peers[peerId].pc) return state.peers[peerId].pc;
 
             console.log('Creating peer connection for:', peerId, username || 'Unknown');
             const peerConnection = new RTCPeerConnection(rtcConfig);
-            state.peers[peerId] = {
-                pc: peerConnection,
-                stream: null,
-                username: username || `User ${peerId.substring(0, 5)}`
-            };
+            
+            // Don't overwrite existing peer object - update it instead
+            if (!state.peers[peerId]) {
+                state.peers[peerId] = {};
+            }
+            
+            state.peers[peerId].pc = peerConnection;
+            state.peers[peerId].stream = null;
+            state.peers[peerId].username = username || state.peers[peerId].username || `User ${peerId.substring(0, 5)}`;
+            state.peers[peerId].iceQueue = [];
 
             // Add local stream tracks
             if (state.localStream) {
@@ -1051,6 +1056,11 @@
                     const remoteStream = event.streams[0];
                     console.log('   Stream ID:', remoteStream.id);
                     console.log('   Stream tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.label));
+                    console.log('   Stream active:', remoteStream.active);
+                    
+                    if (!remoteStream.active) {
+                        console.warn('⚠️ Stream inactive for peer:', peerId);
+                    }
                     
                     state.peers[peerId].stream = remoteStream;
                     const displayName = state.peers[peerId].username || `Peer ${peerId.substring(0, 5)}`;
@@ -1108,15 +1118,24 @@
             try {
                 console.log('📥 Received offer from:', peerId);
                 console.log('   Creating answer...');
-                let peerConnection = state.peers[peerId];
-                if (!peerConnection || !peerConnection.pc) {
+                let peerConnection = state.peers[peerId]?.pc;
+                if (!peerConnection) {
                     peerConnection = await createPeerConnection(peerId);
-                } else {
-                    peerConnection = peerConnection.pc;
                 }
 
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
                 console.log('   Remote description set');
+                
+                // Process queued ICE candidates
+                const queued = state.peers[peerId].iceQueue || [];
+                if (queued.length > 0) {
+                    console.log('   Processing', queued.length, 'queued ICE candidates');
+                    for (const candidate of queued) {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    }
+                    state.peers[peerId].iceQueue = [];
+                }
+                
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
                 console.log('   Answer created and set as local description');
@@ -1162,10 +1181,7 @@
                 // Send offer to all existing participants
                 users.forEach(user => {
                     console.log('  Will send offer to:', user.username || user.id);
-                    // Store username if available
-                    if (!state.peers[user.id]) {
-                        state.peers[user.id] = { username: user.username || 'Unknown' };
-                    }
+                    // Don't pre-initialize peer object - let createPeerConnection handle it
                     setTimeout(() => {
                         sendOffer(user.id, user.username);
                     }, 300);
@@ -1175,10 +1191,7 @@
             state.socket.on('user-joined', (user) => {
                 console.log('👤 User joined:', user.username, user.id);
                 addMessage('System', `${user.username} joined`);
-                // Store username
-                if (!state.peers[user.id]) {
-                    state.peers[user.id] = { username: user.username };
-                }
+                // Don't pre-initialize peer object - let createPeerConnection handle it
                 // Send offer to new user
                 setTimeout(() => {
                     sendOffer(user.id, user.username);
@@ -1214,39 +1227,56 @@
 
             state.socket.on('receive-answer', async (data) => {
                 console.log('📬 Received answer from:', data.from);
-                if (state.peers[data.from]) {
-                    const pc = state.peers[data.from].pc || state.peers[data.from];
-                    if (pc && pc.setRemoteDescription) {
-                        await pc.setRemoteDescription(
-                            new RTCSessionDescription(data.answer)
-                        );
-                        console.log('✓ Answer applied to peer connection');
-                    } else {
-                        console.error('❌ Invalid peer connection object for:', data.from);
+                const peer = state.peers[data.from];
+                if (!peer || !peer.pc) {
+                    console.error('❌ Peer connection missing for:', data.from);
+                    return;
+                }
+                const pc = peer.pc;
+                
+                try {
+                    await pc.setRemoteDescription(
+                        new RTCSessionDescription(data.answer)
+                    );
+                    console.log('✓ Answer applied to peer connection');
+                    
+                    // Process queued ICE candidates
+                    const queued = peer.iceQueue || [];
+                    if (queued.length > 0) {
+                        console.log('   Processing', queued.length, 'queued ICE candidates');
+                        for (const candidate of queued) {
+                            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                        }
+                        peer.iceQueue = [];
                     }
-                } else {
-                    console.error('❌ No peer connection found for:', data.from);
+                } catch (error) {
+                    console.error('❌ Error applying answer:', error);
                 }
             });
 
             state.socket.on('receive-ice', async (data) => {
                 console.log('🧊 Received ICE candidate from:', data.from);
-                if (state.peers[data.from]) {
-                    const pc = state.peers[data.from].pc || state.peers[data.from];
-                    if (pc && pc.addIceCandidate) {
-                        try {
-                            await pc.addIceCandidate(
-                                new RTCIceCandidate(data.candidate)
-                            );
-                            console.log('  ✓ ICE candidate added');
-                        } catch (error) {
-                            console.error('  ❌ Error adding ICE candidate:', error);
-                        }
+                const peer = state.peers[data.from];
+                if (!peer || !peer.pc) {
+                    console.warn('⚠️ Peer connection missing for ICE candidate from:', data.from);
+                    return;
+                }
+                const pc = peer.pc;
+                
+                try {
+                    // Check if remote description is set before adding ICE
+                    if (pc.remoteDescription) {
+                        await pc.addIceCandidate(
+                            new RTCIceCandidate(data.candidate)
+                        );
+                        console.log('  ✓ ICE candidate added');
                     } else {
-                        console.error('❌ Invalid peer connection for ICE candidate');
+                        // Queue ICE candidate until remote description is set
+                        console.log('  ⏳ Queueing ICE candidate (no remote description yet)');
+                        peer.iceQueue.push(data.candidate);
                     }
-                } else {
-                    console.warn('⚠️ Received ICE for unknown peer:', data.from);
+                } catch (error) {
+                    console.error('  ❌ Error adding ICE candidate:', error);
                 }
             });
 

@@ -5,10 +5,22 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { 
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 app.use(express.static("public"));
+
+// Health check endpoint for deployment platforms
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // Store room data
 const rooms = {};

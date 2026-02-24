@@ -2,6 +2,8 @@
 
 A real-time video calling application with chat functionality. Built with WebRTC, Socket.io, Express, and vanilla JavaScript.
 
+> ✅ **Now production-ready!** All deployment issues fixed. See [DEPLOYMENT.md](DEPLOYMENT.md) for details.
+
 ## ✨ Features
 
 - 🎥 **Multi-participant video calls** - Support for multiple users simultaneously
@@ -111,9 +113,11 @@ hackathon-call/
 
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **Backend**: Node.js, Express
-- **Real-time**: Socket.io
+- **Real-time**: Socket.io (with WebSocket + polling fallback)
 - **Video/Audio**: WebRTC (RTCPeerConnection)
-- **STUN Server**: Google STUN servers
+- **ICE Servers**: 
+  - STUN: Google STUN servers
+  - TURN: OpenRelay (for production cross-network connectivity)
 
 ---
 
@@ -142,14 +146,26 @@ Feel free to submit issues and pull requests!
 
 ## 🐛 Troubleshooting
 
-**Camera/Mic not working?**
-- Ensure browser permissions are granted
-- Use HTTPS in production (required for WebRTC)
+**Camera/Mic not working in production?**
+- ⚠️ **HTTPS is REQUIRED** for camera/microphone in production
+- Deploy to Render, Railway, or Heroku (all provide free HTTPS)
+- Local development works on `localhost` without HTTPS
+
+**Socket.io connection failing?**
+- ✅ Now configured with fallback transports (polling)
+- Check browser console for connection errors
+- Server logs show connection attempts
+
+**Video connects locally but not when deployed?**
+- ✅ TURN servers now configured for cross-network connectivity
+- May take a few seconds to establish connection
+- Check if both users are on HTTPS
 
 **Can't connect to other users?**
 - Check firewall settings
 - Ensure server is running
 - Try different browsers
+- See [DEPLOYMENT.md](DEPLOYMENT.md) for more debugging tips
 
 **Free deployment sleeping?**
 - Render free tier spins down after 15 min inactivity
